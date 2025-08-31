@@ -42,10 +42,16 @@
             </div>
         </div>
 
+        <!-- Coordinates Display -->
+        <div id="coordinates" class="absolute top-4 right-4 text-white text-sm bg-black bg-opacity-75 p-2 rounded pointer-events-auto">
+            <div>X: <span id="coordX">0</span> | Y: <span id="coordY">0</span></div>
+            <div>Character: <span id="coordChar">1</span></div>
+        </div>
+
         <!-- Controls Info -->
         <div class="absolute bottom-4 left-4 text-white text-sm bg-black bg-opacity-50 p-2 rounded pointer-events-auto">
             <div>Arrow Keys: Move | Up: Jump | Space: Primary Ability | C: Secondary (Primm)</div>
-            <div>1-4: Switch Characters</div>
+            <div>1-4: Switch Characters | R: Restart</div>
         </div>
     </div>
 
@@ -142,62 +148,131 @@
             }
 
             initLevel() {
-                // Ground platforms
-                this.platforms.push({x: 0, y: 600, width: 300, height: 200, color: '#8b4513'});
-                this.platforms.push({x: 500, y: 600, width: 200, height: 200, color: '#8b4513'});
-                this.platforms.push({x: 900, y: 600, width: 200, height: 200, color: '#8b4513'});
-                this.platforms.push({x: 1300, y: 600, width: 200, height: 200, color: '#8b4513'});
-                this.platforms.push({x: 1700, y: 400, width: 200, height: 400, color: '#8b4513'});
-
-                // Teibi puzzle - wall with small gap
-                this.platforms.push({x: 400, y: 400, width: 20, height: 160, color: '#666'});
-                this.platforms.push({x: 400, y: 560, width: 20, height: 40, color: '#666', gap: true});
-
-                // Large chasm for Mister Underpants
-                // (gap between x: 700 and x: 900)
-
-                // Phase wall for Primm
+                // Starting area - multiple platforms for warmup
+                this.platforms.push({x: 0, y: 650, width: 300, height: 150, color: '#8b4513'});
+                this.platforms.push({x: 200, y: 550, width: 120, height: 20, color: '#654321'});
+                this.platforms.push({x: 380, y: 480, width: 80, height: 20, color: '#654321'});
+                this.platforms.push({x: 520, y: 420, width: 100, height: 20, color: '#654321'});
+                
+                // Teibi section - more interesting wall design
+                this.platforms.push({x: 700, y: 350, width: 150, height: 20, color: '#654321'});
+                this.platforms.push({x: 900, y: 650, width: 200, height: 150, color: '#8b4513'});
+                
+                // The "first wall" - a more obvious crawl space
+                this.platforms.push({x: 850, y: 400, width: 30, height: 220, color: '#555'});
+                this.platforms.push({x: 850, y: 620, width: 30, height: 30, color: '#555', gap: true});
+                
+                // Add some decorative elements around the gap
                 this.objects.push({
-                    type: 'phaseWall',
-                    x: 1200, y: 400,
-                    width: 20, height: 200,
-                    color: 'rgba(255, 0, 255, 0.5)'
+                    type: 'decoration',
+                    x: 820, y: 615,
+                    width: 25, height: 10,
+                    color: '#8b4513'
+                });
+                this.objects.push({
+                    type: 'sign',
+                    x: 750, y: 310,
+                    width: 40, height: 30,
+                    color: '#d4a574',
+                    text: 'Small passage ahead!'
                 });
 
-                // Wind platform for Windman
+                // More platforming after Teibi section
+                this.platforms.push({x: 1150, y: 550, width: 100, height: 20, color: '#654321'});
+                this.platforms.push({x: 1300, y: 480, width: 80, height: 20, color: '#654321'});
+                this.platforms.push({x: 1450, y: 420, width: 120, height: 20, color: '#654321'});
+
+                // Mister Underpants section - wide chasm with interesting terrain
+                this.platforms.push({x: 1650, y: 650, width: 100, height: 150, color: '#8b4513'});
+                // Add intermediate platform to make crossing easier
+                this.platforms.push({x: 1900, y: 620, width: 80, height: 20, color: '#654321'});
+                this.platforms.push({x: 2050, y: 580, width: 80, height: 20, color: '#654321'});
+                this.platforms.push({x: 2200, y: 520, width: 100, height: 20, color: '#654321'});
+                this.platforms.push({x: 2350, y: 650, width: 200, height: 150, color: '#8b4513'});
+
+                // More vertical platforming - fix gaps
+                this.platforms.push({x: 2550, y: 600, width: 100, height: 20, color: '#654321'});
+                this.platforms.push({x: 2700, y: 540, width: 100, height: 20, color: '#654321'});
+                
+                // Add wind platform to help cross the gap
                 this.objects.push({
                     type: 'windPlatform',
-                    x: 1600, y: 580,
-                    width: 80, height: 20,
+                    x: 2820, y: 520,
+                    width: 80, height: 15,
                     color: '#87CEEB',
                     activated: false,
                     targetY: 420
                 });
+                
+                this.platforms.push({x: 2950, y: 480, width: 100, height: 20, color: '#654321'});
+                this.platforms.push({x: 3100, y: 580, width: 80, height: 20, color: '#654321'});
 
-                // Goal
+                // Primm section with phase walls
+                this.platforms.push({x: 3120, y: 650, width: 150, height: 150, color: '#8b4513'});
+                
+                this.objects.push({
+                    type: 'phaseWall',
+                    x: 3270, y: 450,
+                    width: 25, height: 200,
+                    color: 'rgba(138, 43, 226, 0.6)'
+                });
+                
+                this.platforms.push({x: 3350, y: 580, width: 100, height: 20, color: '#654321'});
+                this.platforms.push({x: 3500, y: 520, width: 80, height: 20, color: '#654321'});
+
+                // Final Windman section - elevated goal platform
+                this.platforms.push({x: 3600, y: 650, width: 200, height: 150, color: '#8b4513'});
+                this.platforms.push({x: 3900, y: 300, width: 150, height: 20, color: '#654321'}); // High goal platform
+
+                // Wind platform to reach the goal
+                this.objects.push({
+                    type: 'windPlatform',
+                    x: 3700, y: 630,
+                    width: 100, height: 15,
+                    color: '#87CEEB',
+                    activated: false,
+                    targetY: 400
+                });
+
+                // Goal on the high platform
                 this.objects.push({
                     type: 'goal',
-                    x: 1750, y: 350,
-                    width: 40, height: 40,
+                    x: 3950, y: 250,
+                    width: 50, height: 50,
                     color: '#ffd700'
                 });
 
-                // Enemies
+                // Add some collectible coins for fun
+                this.objects.push({type: 'coin', x: 250, y: 520, width: 15, height: 15, color: '#ffd700', collected: false});
+                this.objects.push({type: 'coin', x: 750, y: 320, width: 15, height: 15, color: '#ffd700', collected: false});
+                this.objects.push({type: 'coin', x: 2100, y: 550, width: 15, height: 15, color: '#ffd700', collected: false});
+                this.objects.push({type: 'coin', x: 3350, y: 550, width: 15, height: 15, color: '#ffd700', collected: false});
+
+                // More interesting enemy placement
                 this.enemies.push({
-                    x: 750, y: 560,
+                    x: 1200, y: 530,
                     width: 25, height: 25,
                     color: '#dc2626',
-                    vx: 2,
-                    patrol: {min: 720, max: 880},
+                    vx: 1.5,
+                    patrol: {min: 1150, max: 1350},
                     alive: true
                 });
 
                 this.enemies.push({
-                    x: 1250, y: 560,
+                    x: 2100, y: 495,
                     width: 25, height: 25,
                     color: '#dc2626',
                     vx: 2,
-                    patrol: {min: 1220, max: 1280},
+                    patrol: {min: 2050, max: 2300},
+                    alive: true
+                });
+
+                this.enemies.push({
+                    x: 3350, y: 555,
+                    width: 25, height: 25,
+                    color: '#dc2626',
+                    vx: 1,
+                    patrol: {min: 3300, max: 3450},
                     alive: true
                 });
             }
@@ -237,6 +312,11 @@
                     if (this.currentCharacter === 3) {
                         this.characters[3].phasing = true;
                     }
+                }
+
+                // Restart game
+                if (key === 'KeyR') {
+                    this.restartGame();
                 }
             }
 
@@ -294,6 +374,12 @@
 
             windGust() {
                 const char = this.characters[1];
+                const windRange = 150;
+                const windForce = 8;
+                
+                // Create visual wind effect
+                this.createWindEffect(char);
+                
                 // Check for nearby wind platforms
                 this.objects.forEach(obj => {
                     if (obj.type === 'windPlatform' && 
@@ -302,6 +388,41 @@
                         obj.activated = true;
                     }
                 });
+                
+                // Blow away enemies in front of Windman
+                this.enemies.forEach(enemy => {
+                    if (!enemy.alive) return;
+                    
+                    const dx = enemy.x - char.x;
+                    const dy = enemy.y - char.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    // Check if enemy is in front of Windman and within range
+                    if (distance < windRange && dx > 0 && Math.abs(dy) < 60) {
+                        // Push enemy away
+                        enemy.x += windForce;
+                        enemy.y -= 2; // Slight upward push
+                        
+                        // Temporarily disable enemy patrol to show they're being blown
+                        enemy.stunned = 60; // 1 second of being stunned
+                        enemy.vx = 0; // Stop normal movement
+                    }
+                });
+            }
+            
+            createWindEffect(char) {
+                // Add wind particles for visual feedback
+                for (let i = 0; i < 8; i++) {
+                    this.windParticles = this.windParticles || [];
+                    this.windParticles.push({
+                        x: char.x + char.width,
+                        y: char.y + 15 + (Math.random() - 0.5) * 20,
+                        vx: 4 + Math.random() * 3,
+                        vy: (Math.random() - 0.5) * 2,
+                        life: 30,
+                        maxLife: 30
+                    });
+                }
             }
 
             toggleShrink() {
@@ -322,16 +443,26 @@
                 if (char.dashCooldown <= 0) {
                     char.vx = 15;
                     char.dashCooldown = 60;
+                    char.dashing = 15; // Dash lasts for 15 frames
                     
-                    // Check for enemies in dash path
-                    this.enemies.forEach(enemy => {
-                        if (enemy.alive && 
-                            Math.abs(enemy.x - char.x) < 60 && 
-                            Math.abs(enemy.y - char.y) < 50) {
+                    // Immediately check for enemies in current dash range
+                    this.killEnemiesInDashPath(char);
+                }
+            }
+            
+            killEnemiesInDashPath(char) {
+                // Check for enemies in dash path
+                this.enemies.forEach(enemy => {
+                    if (enemy.alive) {
+                        const dx = Math.abs(enemy.x - char.x);
+                        const dy = Math.abs(enemy.y - char.y);
+                        
+                        // Kill enemies within dash range
+                        if (dx < 40 && dy < 40) {
                             enemy.alive = false;
                         }
-                    });
-                }
+                    }
+                });
             }
 
             update() {
@@ -378,11 +509,18 @@
                 this.updateEnemies();
                 this.updateProjectiles();
                 this.updateObjects();
+                this.updateWindParticles();
                 this.updateCamera();
                 this.updateCooldowns();
 
                 // Check win condition
                 this.checkWinCondition();
+                
+                // Check if player fell off the level
+                this.checkFallDeath();
+                
+                // Update coordinate display
+                this.updateCoordinateDisplay();
             }
 
             checkCollisions(char) {
@@ -424,14 +562,17 @@
 
                 // Object collisions
                 this.objects.forEach(obj => {
-                    if (obj.type === 'phaseWall' && 
-                        !(this.currentCharacter === 3 && char.phasing)) {
-                        // Solid for non-phasing characters
-                        if (char.x < obj.x + obj.width &&
-                            char.x + char.width > obj.x &&
-                            char.y < obj.y + obj.height &&
-                            char.y + char.height > obj.y) {
-                            
+                    if (char.x < obj.x + obj.width &&
+                        char.x + char.width > obj.x &&
+                        char.y < obj.y + obj.height &&
+                        char.y + char.height > obj.y) {
+                        
+                        if (obj.type === 'coin' && !obj.collected) {
+                            obj.collected = true;
+                            // Could add score here
+                        } else if (obj.type === 'phaseWall' && 
+                                   !(this.currentCharacter === 3 && char.phasing)) {
+                            // Solid for non-phasing characters
                             if (char.vx > 0) {
                                 char.x = obj.x - char.width;
                                 char.vx = 0;
@@ -453,11 +594,21 @@
                 this.enemies.forEach(enemy => {
                     if (!enemy.alive) return;
 
-                    enemy.x += enemy.vx;
-                    
-                    // Patrol behavior
-                    if (enemy.x <= enemy.patrol.min || enemy.x >= enemy.patrol.max) {
-                        enemy.vx *= -1;
+                    // Handle stunned state (from wind)
+                    if (enemy.stunned > 0) {
+                        enemy.stunned--;
+                        if (enemy.stunned === 0) {
+                            // Resume normal patrol
+                            enemy.vx = enemy.vx > 0 ? Math.abs(enemy.patrol.speed || 2) : -Math.abs(enemy.patrol.speed || 2);
+                        }
+                    } else {
+                        // Normal movement
+                        enemy.x += enemy.vx;
+                        
+                        // Patrol behavior
+                        if (enemy.x <= enemy.patrol.min || enemy.x >= enemy.patrol.max) {
+                            enemy.vx *= -1;
+                        }
                     }
 
                     // Check collision with current character
@@ -466,7 +617,16 @@
                         char.x + char.width > enemy.x &&
                         char.y < enemy.y + enemy.height &&
                         char.y + char.height > enemy.y) {
-                        this.gameOver();
+                        
+                        // Check if player is stomping (falling down and hitting from above)
+                        if (char.vy > 0 && char.y < enemy.y - 5) {
+                            // Player stomps enemy
+                            enemy.alive = false;
+                            char.vy = -8; // Bounce up after stomping
+                        } else {
+                            // Player dies from touching enemy from side/below
+                            this.gameOver("You were caught by an enemy!");
+                        }
                     }
                 });
             }
@@ -502,6 +662,21 @@
                 });
             }
 
+            updateWindParticles() {
+                if (!this.windParticles) return;
+                
+                this.windParticles = this.windParticles.filter(particle => {
+                    particle.x += particle.vx;
+                    particle.y += particle.vy;
+                    particle.life--;
+                    
+                    // Fade out over time
+                    particle.alpha = particle.life / particle.maxLife;
+                    
+                    return particle.life > 0;
+                });
+            }
+
             updateCamera() {
                 const char = this.characters[this.currentCharacter];
                 this.camera.x = char.x - this.canvas.width / 2;
@@ -513,7 +688,17 @@
             }
 
             updateCooldowns() {
-                this.characters[3].dashCooldown = Math.max(0, this.characters[3].dashCooldown - 1);
+                const primm = this.characters[3];
+                primm.dashCooldown = Math.max(0, primm.dashCooldown - 1);
+                
+                // Handle dashing state
+                if (primm.dashing > 0) {
+                    primm.dashing--;
+                    // Continue killing enemies while dashing
+                    if (this.currentCharacter === 3) {
+                        this.killEnemiesInDashPath(primm);
+                    }
+                }
             }
 
             checkWinCondition() {
@@ -526,6 +711,15 @@
                     char.y < goal.y + goal.height &&
                     char.y + char.height > goal.y) {
                     this.gameComplete();
+                }
+            }
+
+            checkFallDeath() {
+                const char = this.characters[this.currentCharacter];
+                const deathHeight = 900; // If player falls below this Y coordinate, they die
+                
+                if (char.y > deathHeight) {
+                    this.gameOver("Oops! The squad member fell into the abyss!");
                 }
             }
 
@@ -544,15 +738,26 @@
 
                 // Draw objects
                 this.objects.forEach(obj => {
+                    if (obj.type === 'coin' && obj.collected) return;
+                    
                     this.ctx.fillStyle = obj.color;
                     this.ctx.fillRect(obj.x, obj.y, obj.width, obj.height);
                     
                     if (obj.type === 'goal') {
                         // Add sparkle effect
                         this.ctx.fillStyle = '#fff';
-                        this.ctx.fillRect(obj.x + 5, obj.y + 5, 5, 5);
-                        this.ctx.fillRect(obj.x + 25, obj.y + 15, 5, 5);
-                        this.ctx.fillRect(obj.x + 15, obj.y + 25, 5, 5);
+                        this.ctx.fillRect(obj.x + 10, obj.y + 10, 5, 5);
+                        this.ctx.fillRect(obj.x + 30, obj.y + 20, 5, 5);
+                        this.ctx.fillRect(obj.x + 20, obj.y + 35, 5, 5);
+                    } else if (obj.type === 'coin') {
+                        // Add coin shine effect
+                        this.ctx.fillStyle = '#fff';
+                        this.ctx.fillRect(obj.x + 3, obj.y + 3, 3, 3);
+                    } else if (obj.type === 'sign') {
+                        // Draw sign text
+                        this.ctx.fillStyle = '#000';
+                        this.ctx.font = '10px Arial';
+                        this.ctx.fillText('?', obj.x + 15, obj.y + 20);
                     }
                 });
 
@@ -575,25 +780,20 @@
                     this.ctx.fillRect(proj.x, proj.y, proj.width, proj.height);
                 });
 
+                // Draw wind particles
+                if (this.windParticles) {
+                    this.windParticles.forEach(particle => {
+                        this.ctx.globalAlpha = particle.alpha;
+                        this.ctx.fillStyle = '#87CEEB';
+                        this.ctx.fillRect(particle.x, particle.y, 4, 2);
+                    });
+                    this.ctx.globalAlpha = 1;
+                }
+
                 // Draw characters
                 this.characters.forEach((char, index) => {
                     if (index === this.currentCharacter) {
-                        this.ctx.fillStyle = char.color;
-                        this.ctx.fillRect(char.x, char.y, char.width, char.height);
-                        
-                        // Add cape for Mister Underpants
-                        if (index === 0) {
-                            this.ctx.fillStyle = '#1e40af';
-                            this.ctx.fillRect(char.x - 8, char.y, 8, 15);
-                        }
-                        
-                        // Show phasing effect for Primm
-                        if (index === 3 && char.phasing) {
-                            this.ctx.globalAlpha = 0.5;
-                            this.ctx.fillStyle = '#fff';
-                            this.ctx.fillRect(char.x, char.y, char.width, char.height);
-                            this.ctx.globalAlpha = 1;
-                        }
+                        this.drawCharacter(char, index);
                     }
                 });
 
@@ -610,12 +810,154 @@
                 this.ctx.restore();
             }
 
+            updateCoordinateDisplay() {
+                const char = this.characters[this.currentCharacter];
+                document.getElementById('coordX').textContent = Math.round(char.x);
+                document.getElementById('coordY').textContent = Math.round(char.y);
+                document.getElementById('coordChar').textContent = this.currentCharacter + 1;
+            }
+
+            drawCharacter(char, index) {
+                const x = char.x;
+                const y = char.y;
+                const w = char.width;
+                const h = char.height;
+
+                // Show phasing effect for Primm
+                if (index === 3 && char.phasing) {
+                    this.ctx.globalAlpha = 0.5;
+                }
+
+                switch(index) {
+                    case 0: // Mister Underpants
+                        // Cape hanging down behind
+                        this.ctx.fillStyle = '#1e40af';
+                        this.ctx.fillRect(x + 2, y + 15, 8, 20);
+                        
+                        // Body (underwear)
+                        this.ctx.fillStyle = '#ffffff';
+                        this.ctx.fillRect(x + 5, y + 20, w - 10, h - 25);
+                        
+                        // Head
+                        this.ctx.fillStyle = '#fdbcbc';
+                        this.ctx.fillRect(x + 8, y, w - 16, 18);
+                        
+                        // Glasses
+                        this.ctx.fillStyle = '#000';
+                        this.ctx.fillRect(x + 10, y + 6, 4, 4);
+                        this.ctx.fillRect(x + 16, y + 6, 4, 4);
+                        this.ctx.fillRect(x + 14, y + 8, 2, 1);
+                        
+                        // Arms
+                        this.ctx.fillStyle = '#fdbcbc';
+                        this.ctx.fillRect(x + 2, y + 18, 4, 12);
+                        this.ctx.fillRect(x + w - 6, y + 18, 4, 12);
+                        
+                        // Legs
+                        this.ctx.fillRect(x + 8, y + h - 10, 6, 10);
+                        this.ctx.fillRect(x + 16, y + h - 10, 6, 10);
+                        break;
+
+                    case 1: // Windman
+                        // Body (shirt)
+                        this.ctx.fillStyle = '#60a5fa';
+                        this.ctx.fillRect(x + 5, y + 18, w - 10, h - 28);
+                        
+                        // Pants
+                        this.ctx.fillStyle = '#1f2937';
+                        this.ctx.fillRect(x + 5, y + h - 15, w - 10, 10);
+                        
+                        // Head
+                        this.ctx.fillStyle = '#fdbcbc';
+                        this.ctx.fillRect(x + 8, y, w - 16, 18);
+                        
+                        // Hair
+                        this.ctx.fillStyle = '#8b4513';
+                        this.ctx.fillRect(x + 6, y, w - 12, 8);
+                        
+                        // Arms
+                        this.ctx.fillStyle = '#fdbcbc';
+                        this.ctx.fillRect(x + 2, y + 18, 4, 12);
+                        this.ctx.fillRect(x + w - 6, y + 18, 4, 12);
+                        
+                        // Fan (when using ability)
+                        if (this.keys['Space']) {
+                            this.ctx.fillStyle = '#87CEEB';
+                            this.ctx.fillRect(x + w, y + 15, 8, 10);
+                        }
+                        
+                        // Legs
+                        this.ctx.fillStyle = '#fdbcbc';
+                        this.ctx.fillRect(x + 8, y + h - 10, 6, 10);
+                        this.ctx.fillRect(x + 16, y + h - 10, 6, 10);
+                        break;
+
+                    case 2: // Teibi (child-like)
+                        // Body
+                        this.ctx.fillStyle = '#22c55e';
+                        this.ctx.fillRect(x + 6, y + 16, w - 12, h - 24);
+                        
+                        // Head (larger for child proportions)
+                        this.ctx.fillStyle = '#fdbcbc';
+                        this.ctx.fillRect(x + 6, y, w - 12, 16);
+                        
+                        // Hair
+                        this.ctx.fillStyle = '#000';
+                        this.ctx.fillRect(x + 4, y, w - 8, 6);
+                        
+                        // Arms
+                        this.ctx.fillStyle = '#fdbcbc';
+                        this.ctx.fillRect(x + 2, y + 16, 3, 8);
+                        this.ctx.fillRect(x + w - 5, y + 16, 3, 8);
+                        
+                        // Legs
+                        this.ctx.fillRect(x + 9, y + h - 8, 4, 8);
+                        this.ctx.fillRect(x + 17, y + h - 8, 4, 8);
+                        break;
+
+                    case 3: // Primm (ninja-like)
+                        // Body (high-tech suit)
+                        this.ctx.fillStyle = '#a855f7';
+                        this.ctx.fillRect(x + 4, y + 15, w - 8, h - 25);
+                        
+                        // Head/Helmet
+                        this.ctx.fillStyle = '#581c87';
+                        this.ctx.fillRect(x + 7, y, w - 14, 18);
+                        
+                        // Visor
+                        this.ctx.fillStyle = '#00ffff';
+                        this.ctx.fillRect(x + 9, y + 6, w - 18, 4);
+                        
+                        // Arms
+                        this.ctx.fillStyle = '#a855f7';
+                        this.ctx.fillRect(x + 1, y + 15, 4, 12);
+                        this.ctx.fillRect(x + w - 5, y + 15, 4, 12);
+                        
+                        // Katana/Ninjato (on back)
+                        this.ctx.fillStyle = '#c0c0c0';
+                        this.ctx.fillRect(x + w - 3, y + 5, 2, 12);
+                        // Katana handle
+                        this.ctx.fillStyle = '#8b4513';
+                        this.ctx.fillRect(x + w - 3, y + 4, 2, 3);
+                        
+                        // Legs
+                        this.ctx.fillStyle = '#a855f7';
+                        this.ctx.fillRect(x + 8, y + h - 10, 6, 10);
+                        this.ctx.fillRect(x + 16, y + h - 10, 6, 10);
+                        break;
+                }
+
+                if (index === 3 && char.phasing) {
+                    this.ctx.globalAlpha = 1;
+                }
+            }
+
             showTutorial() {
                 const tutorials = [
-                    "Use arrow keys to move and jump. Press Space to shoot enemies!",
-                    "Press Space near the wind platform to activate it!",
-                    "Press Space to shrink and fit through small gaps!",
-                    "Hold C to phase through purple walls. Press Space to dash attack!"
+                    "Mister Underpants: Use arrow keys to move and jump. Hold UP while falling to glide! Press SPACE to shoot enemies!",
+                    "Windman: Press SPACE to create wind gusts! Blow enemies away from a distance and activate wind platforms!",
+                    "Teibi: Press SPACE to shrink down and crawl through the small gap in the wall!",
+                    "Primm: Hold C to phase through purple walls. Press SPACE to dash attack enemies!"
                 ];
 
                 const tutorialDiv = document.getElementById('tutorialMessage');
@@ -629,13 +971,13 @@
                 }, 3000);
             }
 
-            gameOver() {
+            gameOver(message = "Game Over!") {
                 const messageDiv = document.getElementById('gameMessage');
                 const titleDiv = document.getElementById('gameMessageTitle');
                 const textDiv = document.getElementById('gameMessageText');
                 
                 titleDiv.textContent = 'Game Over!';
-                textDiv.textContent = 'You were caught by an enemy. Try again!';
+                textDiv.textContent = message + ' Press R to restart or click the button below.';
                 messageDiv.classList.remove('hidden');
             }
 
@@ -660,6 +1002,12 @@
             document.getElementById('gameMessage').classList.add('hidden');
             window.location.reload();
         }
+
+        // Restart method for the game class
+        Game.prototype.restartGame = function() {
+            document.getElementById('gameMessage').classList.add('hidden');
+            window.location.reload();
+        };
 
         // Start the game
         const game = new Game();
