@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Unlikely Squad</title>
+    <title>Crime Kickers vs The Bad Guys</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
@@ -21,7 +21,7 @@
 <body>
     <div class="fixed inset-0 pointer-events-none">
         <!-- Character Selection UI -->
-        <div class="absolute top-4 left-4 flex space-x-2 pointer-events-auto">
+        <div class="absolute top-4 left-1/2 transform -translate-x-1/2 flex space-x-2 pointer-events-auto">
             <div id="char1" class="w-12 h-12 bg-red-500 rounded border-2 border-white flex items-center justify-center text-white font-bold cursor-pointer">1</div>
             <div id="char2" class="w-12 h-12 bg-blue-400 rounded border-2 border-gray-400 flex items-center justify-center text-white font-bold cursor-pointer">2</div>
             <div id="char3" class="w-12 h-12 bg-green-500 rounded border-2 border-gray-400 flex items-center justify-center text-white font-bold cursor-pointer">3</div>
@@ -31,6 +31,34 @@
         <!-- Tutorial Messages -->
         <div id="tutorialMessage" class="absolute top-20 left-4 right-4 bg-black bg-opacity-75 text-white p-4 rounded hidden pointer-events-auto">
             <p id="tutorialText"></p>
+        </div>
+
+        <!-- Start Screen -->
+        <div id="startScreen" class="absolute inset-0 bg-gradient-to-b from-blue-400 to-green-400 flex items-center justify-center pointer-events-auto">
+            <div class="bg-white p-8 rounded-lg text-center shadow-lg max-w-md">
+                <h1 class="text-4xl font-bold mb-2 text-gray-800">Crime Kickers vs The Bad Guys</h1>
+                <p class="text-gray-600 mb-6">A superhero platformer adventure!</p>
+                
+                <div class="mb-6">
+                    <h3 class="text-lg font-semibold mb-3">Choose Difficulty:</h3>
+                    <div class="space-y-2">
+                        <button onclick="startGame('easy')" class="w-full bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-colors">
+                            Easy - 3 Hearts ❤️❤️❤️
+                        </button>
+                        <button onclick="startGame('normal')" class="w-full bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors">
+                            Normal - No extra lives
+                        </button>
+                        <button onclick="startGame('hardcore')" class="w-full bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition-colors">
+                            Hardcore - More enemies! 💀
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="text-sm text-gray-500">
+                    <p>Switch characters: 1-4 keys</p>
+                    <p>Move: Arrow keys | Jump: Up | Abilities: Space/C</p>
+                </div>
+            </div>
         </div>
 
         <!-- Game Over/Complete Message -->
@@ -50,6 +78,11 @@
         </div>
 
 
+        <!-- Hearts Display (Easy Mode) -->
+        <div id="heartsDisplay" class="absolute top-4 left-4 text-white text-2xl bg-black bg-opacity-50 p-2 rounded pointer-events-auto hidden">
+            <span id="heartsText">❤️❤️❤️</span>
+        </div>
+
         <!-- Controls Info -->
         <div class="absolute bottom-4 left-4 text-white text-sm bg-black bg-opacity-50 p-2 rounded pointer-events-auto">
             <div>Arrow Keys: Move | Up: Jump | Space: Primary Ability | C: Secondary (Primm)</div>
@@ -61,19 +94,11 @@
 
     <!-- Audio Elements -->
     <audio id="bgMusic1" loop>
-        <!-- Add your own music files here - any format works -->
-        <!-- <source src="music1.mp3" type="audio/mpeg"> -->
-        <!-- <source src="music1.wav" type="audio/wav"> -->
-        <!-- <source src="music1.ogg" type="audio/ogg"> -->
-        <!-- <source src="music1.m4a" type="audio/mp4"> -->
+        <source src="Verse 1.mp3" type="audio/mpeg">
     </audio>
     
     <audio id="bgMusic2" loop>
-        <!-- Add your own music files here - any format works -->
-        <!-- <source src="music2.mp3" type="audio/mpeg"> -->
-        <!-- <source src="music2.wav" type="audio/wav"> -->
-        <!-- <source src="music2.ogg" type="audio/ogg"> -->
-        <!-- <source src="music2.m4a" type="audio/mp4"> -->
+        <source src="Verse 1 (2).mp3" type="audio/mpeg">
     </audio>
 
     <script>
@@ -127,6 +152,51 @@
                     currentMusic.pause();
                 }
             }
+        }
+
+        // Game variables
+        let game = null;
+        let difficulty = 'normal';
+        let hearts = 0;
+        let gameStarted = false;
+
+        // Start game with selected difficulty
+        function startGame(selectedDifficulty) {
+            difficulty = selectedDifficulty;
+            
+            // Set hearts based on difficulty
+            if (difficulty === 'easy') {
+                hearts = 3;
+            } else {
+                hearts = 0; // Normal and Hardcore have no hearts
+            }
+            
+            // Hide start screen
+            document.getElementById('startScreen').classList.add('hidden');
+            
+            // Show hearts for easy mode
+            if (difficulty === 'easy') {
+                document.getElementById('heartsDisplay').classList.remove('hidden');
+                updateHeartsDisplay();
+            }
+            
+            // Start the actual game
+            game = new Game();
+            gameStarted = true;
+        }
+
+        function updateHeartsDisplay() {
+            const heartsText = document.getElementById('heartsText');
+            heartsText.textContent = '❤️'.repeat(hearts);
+        }
+
+        function loseHeart() {
+            if (difficulty === 'easy' && hearts > 0) {
+                hearts--;
+                updateHeartsDisplay();
+                return hearts > 0; // Return true if player still has hearts
+            }
+            return false; // No hearts left or not easy mode
         }
 
         // Game Engine
@@ -293,22 +363,40 @@
 
                 // Final Windman section - elevated goal platform
                 this.platforms.push({x: 3600, y: 650, width: 200, height: 150, color: '#8b4513'});
-                this.platforms.push({x: 3900, y: 300, width: 150, height: 20, color: '#654321'}); // High goal platform
+                
+                // Critical Teibi section - REQUIRED to reach the goal!
+                this.platforms.push({x: 3850, y: 400, width: 200, height: 20, color: '#654321'});
+                
+                // Wall blocking the goal - only Teibi can get through
+                this.platforms.push({x: 4050, y: 200, width: 30, height: 200, color: '#666'});
+                this.platforms.push({x: 4050, y: 400, width: 30, height: 20, color: '#666', gap: true}); // Small gap
+                
+                // Goal platform - behind the wall
+                this.platforms.push({x: 4100, y: 300, width: 100, height: 20, color: '#654321'});
 
-                // Wind platform to reach the goal
+                // Wind platform to reach Teibi section
                 this.objects.push({
                     type: 'windPlatform',
                     x: 3700, y: 630,
                     width: 100, height: 15,
                     color: '#87CEEB',
                     activated: false,
-                    targetY: 400
+                    targetY: 420
                 });
 
-                // Goal on the high platform
+                // Sign to hint about Teibi requirement
+                this.objects.push({
+                    type: 'sign',
+                    x: 3900, y: 360,
+                    width: 40, height: 30,
+                    color: '#d4a574',
+                    text: 'Only the smallest can reach the goal!'
+                });
+
+                // Goal behind the wall - only accessible by small Teibi
                 this.objects.push({
                     type: 'goal',
-                    x: 3950, y: 250,
+                    x: 4125, y: 250,
                     width: 50, height: 50,
                     color: '#ffd700'
                 });
@@ -319,7 +407,7 @@
                 this.objects.push({type: 'coin', x: 2100, y: 550, width: 15, height: 15, color: '#ffd700', collected: false});
                 this.objects.push({type: 'coin', x: 3350, y: 550, width: 15, height: 15, color: '#ffd700', collected: false});
 
-                // More interesting enemy placement
+                // Enemy placement based on difficulty
                 this.enemies.push({
                     x: 1200, y: 530,
                     width: 25, height: 25,
@@ -346,6 +434,197 @@
                     patrol: {min: 3300, max: 3450},
                     alive: true
                 });
+
+                // Hardcore mode - add LOTS more enemies
+                if (difficulty === 'hardcore') {
+                    // Starting area enemies
+                    this.enemies.push({
+                        x: 250, y: 620,
+                        width: 25, height: 25,
+                        color: '#dc2626',
+                        vx: 1.5,
+                        patrol: {min: 200, max: 380},
+                        alive: true
+                    });
+                    
+                    this.enemies.push({
+                        x: 450, y: 450,
+                        width: 25, height: 25,
+                        color: '#dc2626',
+                        vx: 2,
+                        patrol: {min: 380, max: 520},
+                        alive: true
+                    });
+                    
+                    this.enemies.push({
+                        x: 600, y: 390,
+                        width: 25, height: 25,
+                        color: '#dc2626',
+                        vx: 1.8,
+                        patrol: {min: 520, max: 700},
+                        alive: true
+                    });
+
+                    // Teibi section enemies
+                    this.enemies.push({
+                        x: 800, y: 320,
+                        width: 25, height: 25,
+                        color: '#dc2626',
+                        vx: 1.2,
+                        patrol: {min: 750, max: 850},
+                        alive: true
+                    });
+                    
+                    this.enemies.push({
+                        x: 1000, y: 620,
+                        width: 25, height: 25,
+                        color: '#dc2626',
+                        vx: 2.2,
+                        patrol: {min: 950, max: 1100},
+                        alive: true
+                    });
+
+                    // More enemies after Teibi section
+                    this.enemies.push({
+                        x: 1400, y: 390,
+                        width: 25, height: 25,
+                        color: '#dc2626',
+                        vx: 1.7,
+                        patrol: {min: 1300, max: 1500},
+                        alive: true
+                    });
+                    
+                    this.enemies.push({
+                        x: 1550, y: 620,
+                        width: 25, height: 25,
+                        color: '#dc2626',
+                        vx: 1.3,
+                        patrol: {min: 1450, max: 1650},
+                        alive: true
+                    });
+
+                    // Mister Underpants section - before and after chasm
+                    this.enemies.push({
+                        x: 1800, y: 590,
+                        width: 25, height: 25,
+                        color: '#dc2626',
+                        vx: 2.5,
+                        patrol: {min: 1750, max: 1950},
+                        alive: true
+                    });
+                    
+                    this.enemies.push({
+                        x: 2250, y: 490,
+                        width: 25, height: 25,
+                        color: '#dc2626',
+                        vx: 1.8,
+                        patrol: {min: 2200, max: 2350},
+                        alive: true
+                    });
+                    
+                    this.enemies.push({
+                        x: 2450, y: 620,
+                        width: 25, height: 25,
+                        color: '#dc2626',
+                        vx: 2,
+                        patrol: {min: 2350, max: 2550},
+                        alive: true
+                    });
+
+                    // Vertical platforming section - lots of enemies
+                    this.enemies.push({
+                        x: 2650, y: 570,
+                        width: 25, height: 25,
+                        color: '#dc2626',
+                        vx: 1.6,
+                        patrol: {min: 2550, max: 2750},
+                        alive: true
+                    });
+                    
+                    this.enemies.push({
+                        x: 2800, y: 510,
+                        width: 25, height: 25,
+                        color: '#dc2626',
+                        vx: 1.4,
+                        patrol: {min: 2700, max: 2900},
+                        alive: true
+                    });
+                    
+                    this.enemies.push({
+                        x: 2950, y: 450,
+                        width: 25, height: 25,
+                        color: '#dc2626',
+                        vx: 1.9,
+                        patrol: {min: 2850, max: 3050},
+                        alive: true
+                    });
+                    
+                    this.enemies.push({
+                        x: 3150, y: 550,
+                        width: 25, height: 25,
+                        color: '#dc2626',
+                        vx: 2.1,
+                        patrol: {min: 3100, max: 3300},
+                        alive: true
+                    });
+
+                    // Primm section - extra enemies
+                    this.enemies.push({
+                        x: 3450, y: 490,
+                        width: 25, height: 25,
+                        color: '#dc2626',
+                        vx: 1.5,
+                        patrol: {min: 3350, max: 3550},
+                        alive: true
+                    });
+
+                    // Final section - challenging enemies
+                    this.enemies.push({
+                        x: 3750, y: 620,
+                        width: 25, height: 25,
+                        color: '#dc2626',
+                        vx: 2.3,
+                        patrol: {min: 3650, max: 3850},
+                        alive: true
+                    });
+                    
+                    this.enemies.push({
+                        x: 3900, y: 370,
+                        width: 25, height: 25,
+                        color: '#dc2626',
+                        vx: 1.7,
+                        patrol: {min: 3850, max: 4000},
+                        alive: true
+                    });
+                    
+                    this.enemies.push({
+                        x: 4150, y: 270,
+                        width: 25, height: 25,
+                        color: '#dc2626',
+                        vx: 1.3,
+                        patrol: {min: 4100, max: 4200},
+                        alive: true
+                    });
+
+                    // Extra flying/jumping enemies for more chaos
+                    this.enemies.push({
+                        x: 1100, y: 400,
+                        width: 25, height: 25,
+                        color: '#8b0000', // Dark red for variety
+                        vx: 2.8,
+                        patrol: {min: 1000, max: 1200},
+                        alive: true
+                    });
+                    
+                    this.enemies.push({
+                        x: 2600, y: 350,
+                        width: 25, height: 25,
+                        color: '#8b0000',
+                        vx: 2.5,
+                        patrol: {min: 2500, max: 2700},
+                        alive: true
+                    });
+                }
             }
 
             bindEvents() {
@@ -375,7 +654,10 @@
 
                 // Primary ability
                 if (key === 'Space') {
-                    this.useAbility();
+                    // Don't allow Mister Underpants to shoot
+                    if (this.currentCharacter !== 0) {
+                        this.useAbility();
+                    }
                 }
 
                 // Secondary ability (Primm only)
@@ -416,9 +698,6 @@
                 const char = this.characters[this.currentCharacter];
                 
                 switch(this.currentCharacter) {
-                    case 0: // Mister Underpants - Shoot
-                        this.shoot();
-                        break;
                     case 1: // Windman - Wind Gust
                         this.windGust();
                         break;
@@ -699,7 +978,12 @@
                             char.vy = -8; // Bounce up after stomping
                         } else {
                             // Player dies from touching enemy from side/below
-                            this.gameOver("You were caught by an enemy!");
+                            if (!loseHeart()) {
+                                this.gameOver("You were caught by an enemy!");
+                            } else {
+                                // Respawn player at start of current section
+                                this.respawnPlayer();
+                            }
                         }
                     }
                 });
@@ -793,8 +1077,24 @@
                 const deathHeight = 900; // If player falls below this Y coordinate, they die
                 
                 if (char.y > deathHeight) {
-                    this.gameOver("Oops! The squad member fell into the abyss!");
+                    if (!loseHeart()) {
+                        this.gameOver("Oops! The squad member fell into the abyss!");
+                    } else {
+                        // Respawn player at start of current section
+                        this.respawnPlayer();
+                    }
                 }
+            }
+
+            respawnPlayer() {
+                // Simple respawn - move player back to start area
+                const char = this.characters[this.currentCharacter];
+                char.x = 100;
+                char.y = 400;
+                char.vx = 0;
+                char.vy = 0;
+                
+                // Brief invincibility flash effect could be added here
             }
 
             render() {
@@ -961,26 +1261,51 @@
                         break;
 
                     case 2: // Teibi (child-like)
-                        // Body
-                        this.ctx.fillStyle = '#22c55e';
-                        this.ctx.fillRect(x + 6, y + 16, w - 12, h - 24);
-                        
-                        // Head (larger for child proportions)
-                        this.ctx.fillStyle = '#fdbcbc';
-                        this.ctx.fillRect(x + 6, y, w - 12, 16);
-                        
-                        // Hair
-                        this.ctx.fillStyle = '#000';
-                        this.ctx.fillRect(x + 4, y, w - 8, 6);
-                        
-                        // Arms
-                        this.ctx.fillStyle = '#fdbcbc';
-                        this.ctx.fillRect(x + 2, y + 16, 3, 8);
-                        this.ctx.fillRect(x + w - 5, y + 16, 3, 8);
-                        
-                        // Legs
-                        this.ctx.fillRect(x + 9, y + h - 8, 4, 8);
-                        this.ctx.fillRect(x + 17, y + h - 8, 4, 8);
+                        if (char.isSmall) {
+                            // Small Teibi - still human but tiny
+                            // Head (proportionally larger when small)
+                            this.ctx.fillStyle = '#fdbcbc';
+                            this.ctx.fillRect(x + 3, y, w - 6, h/2);
+                            
+                            // Hair
+                            this.ctx.fillStyle = '#000';
+                            this.ctx.fillRect(x + 2, y, w - 4, 3);
+                            
+                            // Body
+                            this.ctx.fillStyle = '#22c55e';
+                            this.ctx.fillRect(x + 4, y + h/2, w - 8, h/2 - 4);
+                            
+                            // Tiny arms
+                            this.ctx.fillStyle = '#fdbcbc';
+                            this.ctx.fillRect(x + 1, y + h/2, 2, h/4);
+                            this.ctx.fillRect(x + w - 3, y + h/2, 2, h/4);
+                            
+                            // Tiny legs
+                            this.ctx.fillRect(x + 4, y + h - 4, 3, 4);
+                            this.ctx.fillRect(x + 8, y + h - 4, 3, 4);
+                        } else {
+                            // Normal Teibi
+                            // Body
+                            this.ctx.fillStyle = '#22c55e';
+                            this.ctx.fillRect(x + 6, y + 16, w - 12, h - 24);
+                            
+                            // Head (larger for child proportions)
+                            this.ctx.fillStyle = '#fdbcbc';
+                            this.ctx.fillRect(x + 6, y, w - 12, 16);
+                            
+                            // Hair
+                            this.ctx.fillStyle = '#000';
+                            this.ctx.fillRect(x + 4, y, w - 8, 6);
+                            
+                            // Arms
+                            this.ctx.fillStyle = '#fdbcbc';
+                            this.ctx.fillRect(x + 2, y + 16, 3, 8);
+                            this.ctx.fillRect(x + w - 5, y + 16, 3, 8);
+                            
+                            // Legs
+                            this.ctx.fillRect(x + 9, y + h - 8, 4, 8);
+                            this.ctx.fillRect(x + 17, y + h - 8, 4, 8);
+                        }
                         break;
 
                     case 3: // Primm (ninja-like)
@@ -1022,7 +1347,7 @@
 
             showTutorial() {
                 const tutorials = [
-                    "Mister Underpants: Use arrow keys to move and jump. Hold UP to fly upward! Press SPACE to shoot enemies!",
+                    "Mister Underpants: Use arrow keys to move and jump. Hold UP to fly upward! Use flight to cross gaps and reach high places!",
                     "Windman: Press SPACE to create wind gusts! Blow enemies away from a distance and activate wind platforms!",
                     "Teibi: Press SPACE to shrink down and crawl through the small gap in the wall!",
                     "Primm: Hold C to phase through purple walls. Press SPACE to dash attack enemies!"
@@ -1077,16 +1402,9 @@
             window.location.reload();
         };
 
-        // Start the game
-        const game = new Game();
-        
+        // Don't start game immediately - wait for user selection
         // Initialize audio system
         initAudio();
-        
-        // Show initial tutorial
-        setTimeout(() => {
-            game.showTutorial();
-        }, 1000);
     </script>
 </body>
 </html>

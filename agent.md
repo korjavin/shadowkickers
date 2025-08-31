@@ -1,4 +1,4 @@
-Coding Agent Task: 2D Platformer Game - "The Unlikely Squad"
+Coding Agent Task: 2D Platformer Game - "Crime Kickers vs The Bad Guys"
 Objective
 Create a single-file, browser-based 2D platformer game using HTML, CSS, and vanilla JavaScript. The game's core mechanic revolves around switching between four distinct characters to solve environmental puzzles.
 
