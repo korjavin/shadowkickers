@@ -480,13 +480,12 @@
                     char.onGround = false;
                 }
 
-                // Mister Underpants flight
+                // Mister Underpants flight - fly up like a real superhero
                 if (this.currentCharacter === 0 && 
                     (this.keys['ArrowUp'] || this.keys['KeyW']) && 
-                    !char.onGround && 
                     char.flightFuel > 0) {
-                    char.vy *= 0.6;
-                    char.flightFuel -= 2;
+                    char.vy = -8; // Fly upward
+                    char.flightFuel -= 3;
                 }
 
                 // Primm phasing
@@ -570,6 +569,13 @@
                         if (obj.type === 'coin' && !obj.collected) {
                             obj.collected = true;
                             // Could add score here
+                        } else if (obj.type === 'windPlatform') {
+                            // Wind platforms act like solid platforms you can stand on
+                            if (char.vy > 0 && char.y < obj.y) {
+                                char.y = obj.y - char.height;
+                                char.vy = 0;
+                                char.onGround = true;
+                            }
                         } else if (obj.type === 'phaseWall' && 
                                    !(this.currentCharacter === 3 && char.phasing)) {
                             // Solid for non-phasing characters
@@ -830,9 +836,9 @@
 
                 switch(index) {
                     case 0: // Mister Underpants
-                        // Cape hanging down behind
-                        this.ctx.fillStyle = '#1e40af';
-                        this.ctx.fillRect(x + 2, y + 15, 8, 20);
+                        // Cape hanging down behind (red and bigger)
+                        this.ctx.fillStyle = '#dc2626';
+                        this.ctx.fillRect(x, y + 12, 12, 25);
                         
                         // Body (underwear)
                         this.ctx.fillStyle = '#ffffff';
@@ -954,7 +960,7 @@
 
             showTutorial() {
                 const tutorials = [
-                    "Mister Underpants: Use arrow keys to move and jump. Hold UP while falling to glide! Press SPACE to shoot enemies!",
+                    "Mister Underpants: Use arrow keys to move and jump. Hold UP to fly upward! Press SPACE to shoot enemies!",
                     "Windman: Press SPACE to create wind gusts! Blow enemies away from a distance and activate wind platforms!",
                     "Teibi: Press SPACE to shrink down and crawl through the small gap in the wall!",
                     "Primm: Hold C to phase through purple walls. Press SPACE to dash attack enemies!"
