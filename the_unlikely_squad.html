@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Unlikely Squad</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #1a1a2e;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+            background: linear-gradient(180deg, #87CEEB 0%, #98FB98 100%);
+        }
+    </style>
+</head>
+<body>
+    <div class="fixed inset-0 pointer-events-none">
+        <!-- Character Selection UI -->
+        <div class="absolute top-4 left-4 flex space-x-2 pointer-events-auto">
+            <div id="char1" class="w-12 h-12 bg-red-500 rounded border-2 border-white flex items-center justify-center text-white font-bold cursor-pointer">1</div>
+            <div id="char2" class="w-12 h-12 bg-blue-400 rounded border-2 border-gray-400 flex items-center justify-center text-white font-bold cursor-pointer">2</div>
+            <div id="char3" class="w-12 h-12 bg-green-500 rounded border-2 border-gray-400 flex items-center justify-center text-white font-bold cursor-pointer">3</div>
+            <div id="char4" class="w-12 h-12 bg-purple-500 rounded border-2 border-gray-400 flex items-center justify-center text-white font-bold cursor-pointer">4</div>
+        </div>
+
+        <!-- Tutorial Messages -->
+        <div id="tutorialMessage" class="absolute top-20 left-4 right-4 bg-black bg-opacity-75 text-white p-4 rounded hidden pointer-events-auto">
+            <p id="tutorialText"></p>
+        </div>
+
+        <!-- Game Over/Complete Message -->
+        <div id="gameMessage" class="absolute inset-0 bg-black bg-opacity-75 flex items-center justify-center hidden pointer-events-auto">
+            <div class="bg-white p-8 rounded-lg text-center">
+                <h2 id="gameMessageTitle" class="text-2xl font-bold mb-4"></h2>
+                <p id="gameMessageText" class="mb-4"></p>
+                <button onclick="restartGame()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Restart</button>
+            </div>
+        </div>
+
+        <!-- Controls Info -->
+        <div class="absolute bottom-4 left-4 text-white text-sm bg-black bg-opacity-50 p-2 rounded pointer-events-auto">
+            <div>Arrow Keys: Move | Up: Jump | Space: Primary Ability | C: Secondary (Primm)</div>
+            <div>1-4: Switch Characters</div>
+        </div>
+    </div>
+
+    <canvas id="gameCanvas" width="1200" height="800"></canvas>
+
+    <script>
+        // Game Engine
+        class Game {
+            constructor() {
+                this.canvas = document.getElementById('gameCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight;
+                
+                this.camera = { x: 0, y: 0 };
+                this.keys = {};
+                this.currentCharacter = 0;
+                this.characters = [];
+                this.enemies = [];
+                this.platforms = [];
+                this.objects = [];
+                this.projectiles = [];
+                
+                this.gravity = 0.8;
+                this.friction = 0.8;
+                
+                this.initCharacters();
+                this.initLevel();
+                this.bindEvents();
+                this.gameLoop();
+            }
+
+            initCharacters() {
+                // Mister Underpants (Red)
+                this.characters.push({
+                    name: 'Mister Underpants',
+                    x: 100, y: 400,
+                    width: 30, height: 40,
+                    color: '#ef4444',
+                    vx: 0, vy: 0,
+                    onGround: false,
+                    speed: 5,
+                    jumpPower: 15,
+                    flightFuel: 100,
+                    maxFlightFuel: 100,
+                    abilities: ['fly', 'shoot']
+                });
+
+                // Windman (Light Blue)
+                this.characters.push({
+                    name: 'Windman',
+                    x: 100, y: 400,
+                    width: 30, height: 40,
+                    color: '#60a5fa',
+                    vx: 0, vy: 0,
+                    onGround: false,
+                    speed: 5,
+                    jumpPower: 15,
+                    abilities: ['wind']
+                });
+
+                // Teibi (Green)
+                this.characters.push({
+                    name: 'Teibi',
+                    x: 100, y: 400,
+                    width: 30, height: 40,
+                    color: '#22c55e',
+                    vx: 0, vy: 0,
+                    onGround: false,
+                    speed: 5,
+                    jumpPower: 15,
+                    isSmall: false,
+                    normalWidth: 30,
+                    normalHeight: 40,
+                    smallWidth: 15,
+                    smallHeight: 20,
+                    abilities: ['shrink']
+                });
+
+                // Primm (Purple)
+                this.characters.push({
+                    name: 'Primm',
+                    x: 100, y: 400,
+                    width: 30, height: 40,
+                    color: '#a855f7',
+                    vx: 0, vy: 0,
+                    onGround: false,
+                    speed: 5,
+                    jumpPower: 15,
+                    dashCooldown: 0,
+                    phasing: false,
+                    abilities: ['dash', 'phase']
+                });
+            }
+
+            initLevel() {
+                // Ground platforms
+                this.platforms.push({x: 0, y: 600, width: 300, height: 200, color: '#8b4513'});
+                this.platforms.push({x: 500, y: 600, width: 200, height: 200, color: '#8b4513'});
+                this.platforms.push({x: 900, y: 600, width: 200, height: 200, color: '#8b4513'});
+                this.platforms.push({x: 1300, y: 600, width: 200, height: 200, color: '#8b4513'});
+                this.platforms.push({x: 1700, y: 400, width: 200, height: 400, color: '#8b4513'});
+
+                // Teibi puzzle - wall with small gap
+                this.platforms.push({x: 400, y: 400, width: 20, height: 160, color: '#666'});
+                this.platforms.push({x: 400, y: 560, width: 20, height: 40, color: '#666', gap: true});
+
+                // Large chasm for Mister Underpants
+                // (gap between x: 700 and x: 900)
+
+                // Phase wall for Primm
+                this.objects.push({
+                    type: 'phaseWall',
+                    x: 1200, y: 400,
+                    width: 20, height: 200,
+                    color: 'rgba(255, 0, 255, 0.5)'
+                });
+
+                // Wind platform for Windman
+                this.objects.push({
+                    type: 'windPlatform',
+                    x: 1600, y: 580,
+                    width: 80, height: 20,
+                    color: '#87CEEB',
+                    activated: false,
+                    targetY: 420
+                });
+
+                // Goal
+                this.objects.push({
+                    type: 'goal',
+                    x: 1750, y: 350,
+                    width: 40, height: 40,
+                    color: '#ffd700'
+                });
+
+                // Enemies
+                this.enemies.push({
+                    x: 750, y: 560,
+                    width: 25, height: 25,
+                    color: '#dc2626',
+                    vx: 2,
+                    patrol: {min: 720, max: 880},
+                    alive: true
+                });
+
+                this.enemies.push({
+                    x: 1250, y: 560,
+                    width: 25, height: 25,
+                    color: '#dc2626',
+                    vx: 2,
+                    patrol: {min: 1220, max: 1280},
+                    alive: true
+                });
+            }
+
+            bindEvents() {
+                window.addEventListener('keydown', (e) => {
+                    this.keys[e.code] = true;
+                    this.handleKeyPress(e.code);
+                });
+
+                window.addEventListener('keyup', (e) => {
+                    this.keys[e.code] = false;
+                });
+
+                // Character selection clicks
+                for (let i = 1; i <= 4; i++) {
+                    document.getElementById(`char${i}`).addEventListener('click', () => {
+                        this.switchCharacter(i - 1);
+                    });
+                }
+            }
+
+            handleKeyPress(key) {
+                // Character switching
+                if (key === 'Digit1') this.switchCharacter(0);
+                if (key === 'Digit2') this.switchCharacter(1);
+                if (key === 'Digit3') this.switchCharacter(2);
+                if (key === 'Digit4') this.switchCharacter(3);
+
+                // Primary ability
+                if (key === 'Space') {
+                    this.useAbility();
+                }
+
+                // Secondary ability (Primm only)
+                if (key === 'KeyC') {
+                    if (this.currentCharacter === 3) {
+                        this.characters[3].phasing = true;
+                    }
+                }
+            }
+
+            switchCharacter(index) {
+                const oldChar = this.characters[this.currentCharacter];
+                this.currentCharacter = index;
+                const newChar = this.characters[this.currentCharacter];
+                
+                // Move new character to old character's position
+                newChar.x = oldChar.x;
+                newChar.y = oldChar.y;
+                newChar.vx = 0;
+                newChar.vy = oldChar.vy;
+
+                // Update UI
+                for (let i = 1; i <= 4; i++) {
+                    const elem = document.getElementById(`char${i}`);
+                    elem.classList.toggle('border-white', i - 1 === index);
+                    elem.classList.toggle('border-gray-400', i - 1 !== index);
+                }
+
+                this.showTutorial();
+            }
+
+            useAbility() {
+                const char = this.characters[this.currentCharacter];
+                
+                switch(this.currentCharacter) {
+                    case 0: // Mister Underpants - Shoot
+                        this.shoot();
+                        break;
+                    case 1: // Windman - Wind Gust
+                        this.windGust();
+                        break;
+                    case 2: // Teibi - Shrink
+                        this.toggleShrink();
+                        break;
+                    case 3: // Primm - Dash
+                        this.dash();
+                        break;
+                }
+            }
+
+            shoot() {
+                const char = this.characters[0];
+                this.projectiles.push({
+                    x: char.x + char.width,
+                    y: char.y + char.height / 2,
+                    width: 8,
+                    height: 4,
+                    vx: 10,
+                    color: '#fbbf24'
+                });
+            }
+
+            windGust() {
+                const char = this.characters[1];
+                // Check for nearby wind platforms
+                this.objects.forEach(obj => {
+                    if (obj.type === 'windPlatform' && 
+                        Math.abs(obj.x - char.x) < 100 && 
+                        Math.abs(obj.y - char.y) < 100) {
+                        obj.activated = true;
+                    }
+                });
+            }
+
+            toggleShrink() {
+                const char = this.characters[2];
+                char.isSmall = !char.isSmall;
+                
+                if (char.isSmall) {
+                    char.width = char.smallWidth;
+                    char.height = char.smallHeight;
+                } else {
+                    char.width = char.normalWidth;
+                    char.height = char.normalHeight;
+                }
+            }
+
+            dash() {
+                const char = this.characters[3];
+                if (char.dashCooldown <= 0) {
+                    char.vx = 15;
+                    char.dashCooldown = 60;
+                    
+                    // Check for enemies in dash path
+                    this.enemies.forEach(enemy => {
+                        if (enemy.alive && 
+                            Math.abs(enemy.x - char.x) < 60 && 
+                            Math.abs(enemy.y - char.y) < 50) {
+                            enemy.alive = false;
+                        }
+                    });
+                }
+            }
+
+            update() {
+                const char = this.characters[this.currentCharacter];
+
+                // Handle input
+                if (this.keys['ArrowLeft'] || this.keys['KeyA']) {
+                    char.vx = -char.speed;
+                }
+                if (this.keys['ArrowRight'] || this.keys['KeyD']) {
+                    char.vx = char.speed;
+                }
+                if ((this.keys['ArrowUp'] || this.keys['KeyW']) && char.onGround) {
+                    char.vy = -char.jumpPower;
+                    char.onGround = false;
+                }
+
+                // Mister Underpants flight
+                if (this.currentCharacter === 0 && 
+                    (this.keys['ArrowUp'] || this.keys['KeyW']) && 
+                    !char.onGround && 
+                    char.flightFuel > 0) {
+                    char.vy *= 0.6;
+                    char.flightFuel -= 2;
+                }
+
+                // Primm phasing
+                if (this.currentCharacter === 3 && !this.keys['KeyC']) {
+                    char.phasing = false;
+                }
+
+                // Apply physics
+                char.vy += this.gravity;
+                char.vx *= this.friction;
+
+                // Update position
+                char.x += char.vx;
+                char.y += char.vy;
+
+                // Collision detection
+                this.checkCollisions(char);
+
+                // Update other systems
+                this.updateEnemies();
+                this.updateProjectiles();
+                this.updateObjects();
+                this.updateCamera();
+                this.updateCooldowns();
+
+                // Check win condition
+                this.checkWinCondition();
+            }
+
+            checkCollisions(char) {
+                char.onGround = false;
+
+                // Platform collisions
+                this.platforms.forEach(platform => {
+                    if (platform.gap && this.currentCharacter === 2 && char.isSmall) {
+                        return; // Small Teibi can pass through gaps
+                    }
+
+                    if (char.x < platform.x + platform.width &&
+                        char.x + char.width > platform.x &&
+                        char.y < platform.y + platform.height &&
+                        char.y + char.height > platform.y) {
+                        
+                        // Top collision (landing on platform)
+                        if (char.vy > 0 && char.y < platform.y) {
+                            char.y = platform.y - char.height;
+                            char.vy = 0;
+                            char.onGround = true;
+                        }
+                        // Bottom collision
+                        else if (char.vy < 0 && char.y > platform.y) {
+                            char.y = platform.y + platform.height;
+                            char.vy = 0;
+                        }
+                        // Side collisions
+                        else if (char.vx > 0) {
+                            char.x = platform.x - char.width;
+                            char.vx = 0;
+                        }
+                        else if (char.vx < 0) {
+                            char.x = platform.x + platform.width;
+                            char.vx = 0;
+                        }
+                    }
+                });
+
+                // Object collisions
+                this.objects.forEach(obj => {
+                    if (obj.type === 'phaseWall' && 
+                        !(this.currentCharacter === 3 && char.phasing)) {
+                        // Solid for non-phasing characters
+                        if (char.x < obj.x + obj.width &&
+                            char.x + char.width > obj.x &&
+                            char.y < obj.y + obj.height &&
+                            char.y + char.height > obj.y) {
+                            
+                            if (char.vx > 0) {
+                                char.x = obj.x - char.width;
+                                char.vx = 0;
+                            } else if (char.vx < 0) {
+                                char.x = obj.x + obj.width;
+                                char.vx = 0;
+                            }
+                        }
+                    }
+                });
+
+                // Regenerate flight fuel when grounded
+                if (char.onGround && this.currentCharacter === 0) {
+                    char.flightFuel = Math.min(char.flightFuel + 1, char.maxFlightFuel);
+                }
+            }
+
+            updateEnemies() {
+                this.enemies.forEach(enemy => {
+                    if (!enemy.alive) return;
+
+                    enemy.x += enemy.vx;
+                    
+                    // Patrol behavior
+                    if (enemy.x <= enemy.patrol.min || enemy.x >= enemy.patrol.max) {
+                        enemy.vx *= -1;
+                    }
+
+                    // Check collision with current character
+                    const char = this.characters[this.currentCharacter];
+                    if (char.x < enemy.x + enemy.width &&
+                        char.x + char.width > enemy.x &&
+                        char.y < enemy.y + enemy.height &&
+                        char.y + char.height > enemy.y) {
+                        this.gameOver();
+                    }
+                });
+            }
+
+            updateProjectiles() {
+                this.projectiles = this.projectiles.filter(proj => {
+                    proj.x += proj.vx;
+
+                    // Check enemy hits
+                    this.enemies.forEach(enemy => {
+                        if (enemy.alive &&
+                            proj.x < enemy.x + enemy.width &&
+                            proj.x + proj.width > enemy.x &&
+                            proj.y < enemy.y + enemy.height &&
+                            proj.y + proj.height > enemy.y) {
+                            enemy.alive = false;
+                            proj.hit = true;
+                        }
+                    });
+
+                    // Remove if hit or off screen
+                    return !proj.hit && proj.x < this.camera.x + this.canvas.width;
+                });
+            }
+
+            updateObjects() {
+                this.objects.forEach(obj => {
+                    if (obj.type === 'windPlatform' && obj.activated) {
+                        if (obj.y > obj.targetY) {
+                            obj.y -= 2;
+                        }
+                    }
+                });
+            }
+
+            updateCamera() {
+                const char = this.characters[this.currentCharacter];
+                this.camera.x = char.x - this.canvas.width / 2;
+                this.camera.y = char.y - this.canvas.height / 2;
+
+                // Clamp camera
+                this.camera.x = Math.max(0, this.camera.x);
+                this.camera.y = Math.max(-200, Math.min(200, this.camera.y));
+            }
+
+            updateCooldowns() {
+                this.characters[3].dashCooldown = Math.max(0, this.characters[3].dashCooldown - 1);
+            }
+
+            checkWinCondition() {
+                const char = this.characters[this.currentCharacter];
+                const goal = this.objects.find(obj => obj.type === 'goal');
+                
+                if (goal &&
+                    char.x < goal.x + goal.width &&
+                    char.x + char.width > goal.x &&
+                    char.y < goal.y + goal.height &&
+                    char.y + char.height > goal.y) {
+                    this.gameComplete();
+                }
+            }
+
+            render() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+                // Save context for camera
+                this.ctx.save();
+                this.ctx.translate(-this.camera.x, -this.camera.y);
+
+                // Draw platforms
+                this.platforms.forEach(platform => {
+                    this.ctx.fillStyle = platform.color;
+                    this.ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
+                });
+
+                // Draw objects
+                this.objects.forEach(obj => {
+                    this.ctx.fillStyle = obj.color;
+                    this.ctx.fillRect(obj.x, obj.y, obj.width, obj.height);
+                    
+                    if (obj.type === 'goal') {
+                        // Add sparkle effect
+                        this.ctx.fillStyle = '#fff';
+                        this.ctx.fillRect(obj.x + 5, obj.y + 5, 5, 5);
+                        this.ctx.fillRect(obj.x + 25, obj.y + 15, 5, 5);
+                        this.ctx.fillRect(obj.x + 15, obj.y + 25, 5, 5);
+                    }
+                });
+
+                // Draw enemies
+                this.enemies.forEach(enemy => {
+                    if (enemy.alive) {
+                        this.ctx.fillStyle = enemy.color;
+                        this.ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+                        
+                        // Eyes
+                        this.ctx.fillStyle = '#fff';
+                        this.ctx.fillRect(enemy.x + 5, enemy.y + 5, 4, 4);
+                        this.ctx.fillRect(enemy.x + 15, enemy.y + 5, 4, 4);
+                    }
+                });
+
+                // Draw projectiles
+                this.projectiles.forEach(proj => {
+                    this.ctx.fillStyle = proj.color;
+                    this.ctx.fillRect(proj.x, proj.y, proj.width, proj.height);
+                });
+
+                // Draw characters
+                this.characters.forEach((char, index) => {
+                    if (index === this.currentCharacter) {
+                        this.ctx.fillStyle = char.color;
+                        this.ctx.fillRect(char.x, char.y, char.width, char.height);
+                        
+                        // Add cape for Mister Underpants
+                        if (index === 0) {
+                            this.ctx.fillStyle = '#1e40af';
+                            this.ctx.fillRect(char.x - 8, char.y, 8, 15);
+                        }
+                        
+                        // Show phasing effect for Primm
+                        if (index === 3 && char.phasing) {
+                            this.ctx.globalAlpha = 0.5;
+                            this.ctx.fillStyle = '#fff';
+                            this.ctx.fillRect(char.x, char.y, char.width, char.height);
+                            this.ctx.globalAlpha = 1;
+                        }
+                    }
+                });
+
+                // Draw flight fuel bar for Mister Underpants
+                if (this.currentCharacter === 0) {
+                    const char = this.characters[0];
+                    const fuelPercent = char.flightFuel / char.maxFlightFuel;
+                    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                    this.ctx.fillRect(char.x, char.y - 15, char.width, 5);
+                    this.ctx.fillStyle = fuelPercent > 0.3 ? '#22c55e' : '#ef4444';
+                    this.ctx.fillRect(char.x, char.y - 15, char.width * fuelPercent, 5);
+                }
+
+                this.ctx.restore();
+            }
+
+            showTutorial() {
+                const tutorials = [
+                    "Use arrow keys to move and jump. Press Space to shoot enemies!",
+                    "Press Space near the wind platform to activate it!",
+                    "Press Space to shrink and fit through small gaps!",
+                    "Hold C to phase through purple walls. Press Space to dash attack!"
+                ];
+
+                const tutorialDiv = document.getElementById('tutorialMessage');
+                const tutorialText = document.getElementById('tutorialText');
+                
+                tutorialText.textContent = tutorials[this.currentCharacter];
+                tutorialDiv.classList.remove('hidden');
+                
+                setTimeout(() => {
+                    tutorialDiv.classList.add('hidden');
+                }, 3000);
+            }
+
+            gameOver() {
+                const messageDiv = document.getElementById('gameMessage');
+                const titleDiv = document.getElementById('gameMessageTitle');
+                const textDiv = document.getElementById('gameMessageText');
+                
+                titleDiv.textContent = 'Game Over!';
+                textDiv.textContent = 'You were caught by an enemy. Try again!';
+                messageDiv.classList.remove('hidden');
+            }
+
+            gameComplete() {
+                const messageDiv = document.getElementById('gameMessage');
+                const titleDiv = document.getElementById('gameMessageTitle');
+                const textDiv = document.getElementById('gameMessageText');
+                
+                titleDiv.textContent = 'Level Complete!';
+                textDiv.textContent = 'Congratulations! You successfully used all characters to reach the goal!';
+                messageDiv.classList.remove('hidden');
+            }
+
+            gameLoop() {
+                this.update();
+                this.render();
+                requestAnimationFrame(() => this.gameLoop());
+            }
+        }
+
+        function restartGame() {
+            document.getElementById('gameMessage').classList.add('hidden');
+            window.location.reload();
+        }
+
+        // Start the game
+        const game = new Game();
+        
+        // Show initial tutorial
+        setTimeout(() => {
+            game.showTutorial();
+        }, 1000);
+    </script>
+</body>
+</html>
