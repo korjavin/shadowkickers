@@ -61,6 +61,22 @@
             </div>
         </div>
 
+        <!-- Level Complete Message -->
+        <div id="levelCompleteMessage" class="absolute inset-0 bg-black bg-opacity-75 flex items-center justify-center hidden pointer-events-auto">
+            <div class="bg-white p-8 rounded-lg text-center">
+                <h2 class="text-3xl font-bold mb-4 text-green-600">Level Complete! 🎉</h2>
+                <p id="levelCompleteText" class="mb-6 text-lg"></p>
+                <div class="space-y-3">
+                    <button id="nextLevelBtn" onclick="nextLevel()" class="w-full bg-green-500 text-white px-6 py-3 rounded hover:bg-green-600 text-lg font-semibold">
+                        Next Level ➡️
+                    </button>
+                    <button onclick="restartGame()" class="w-full bg-blue-500 text-white px-6 py-3 rounded hover:bg-blue-600">
+                        Restart Level
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- Game Over/Complete Message -->
         <div id="gameMessage" class="absolute inset-0 bg-black bg-opacity-75 flex items-center justify-center hidden pointer-events-auto">
             <div class="bg-white p-8 rounded-lg text-center">
@@ -159,10 +175,13 @@
         let difficulty = 'normal';
         let hearts = 0;
         let gameStarted = false;
+        let currentLevel = 1;
+        let maxLevel = 2;
 
         // Start game with selected difficulty
-        function startGame(selectedDifficulty) {
+        function startGame(selectedDifficulty, level = 1) {
             difficulty = selectedDifficulty;
+            currentLevel = level;
             
             // Set hearts based on difficulty
             if (difficulty === 'easy') {
@@ -183,6 +202,16 @@
             // Start the actual game
             game = new Game();
             gameStarted = true;
+        }
+
+        function nextLevel() {
+            if (currentLevel < maxLevel) {
+                currentLevel++;
+                document.getElementById('levelCompleteMessage').classList.add('hidden');
+                
+                // Restart with same difficulty but next level
+                startGame(difficulty, currentLevel);
+            }
         }
 
         function updateHeartsDisplay() {
@@ -220,7 +249,7 @@
                 this.friction = 0.8;
                 
                 this.initCharacters();
-                this.initLevel();
+                this.initLevel(currentLevel);
                 this.bindEvents();
                 this.gameLoop();
             }
@@ -288,7 +317,15 @@
                 });
             }
 
-            initLevel() {
+            initLevel(levelNumber = 1) {
+                if (levelNumber === 1) {
+                    this.initLevel1();
+                } else if (levelNumber === 2) {
+                    this.initLevel2();
+                }
+            }
+
+            initLevel1() {
                 // Starting area - multiple platforms for warmup
                 this.platforms.push({x: 0, y: 650, width: 300, height: 150, color: '#8b4513'});
                 this.platforms.push({x: 200, y: 550, width: 120, height: 20, color: '#654321'});
@@ -363,40 +400,22 @@
 
                 // Final Windman section - elevated goal platform
                 this.platforms.push({x: 3600, y: 650, width: 200, height: 150, color: '#8b4513'});
-                
-                // Critical Teibi section - REQUIRED to reach the goal!
-                this.platforms.push({x: 3850, y: 400, width: 200, height: 20, color: '#654321'});
-                
-                // Wall blocking the goal - only Teibi can get through
-                this.platforms.push({x: 4050, y: 200, width: 30, height: 200, color: '#666'});
-                this.platforms.push({x: 4050, y: 400, width: 30, height: 20, color: '#666', gap: true}); // Small gap
-                
-                // Goal platform - behind the wall
-                this.platforms.push({x: 4100, y: 300, width: 100, height: 20, color: '#654321'});
+                this.platforms.push({x: 3900, y: 300, width: 150, height: 20, color: '#654321'}); // High goal platform
 
-                // Wind platform to reach Teibi section
+                // Wind platform to reach the goal
                 this.objects.push({
                     type: 'windPlatform',
                     x: 3700, y: 630,
                     width: 100, height: 15,
                     color: '#87CEEB',
                     activated: false,
-                    targetY: 420
+                    targetY: 400
                 });
 
-                // Sign to hint about Teibi requirement
-                this.objects.push({
-                    type: 'sign',
-                    x: 3900, y: 360,
-                    width: 40, height: 30,
-                    color: '#d4a574',
-                    text: 'Only the smallest can reach the goal!'
-                });
-
-                // Goal behind the wall - only accessible by small Teibi
+                // Goal on the high platform
                 this.objects.push({
                     type: 'goal',
-                    x: 4125, y: 250,
+                    x: 3950, y: 250,
                     width: 50, height: 50,
                     color: '#ffd700'
                 });
@@ -625,6 +644,211 @@
                         alive: true
                     });
                 }
+            }
+
+            initLevel2() {
+                // Level 2 - More challenging reverse layout
+                // Starting area - right side
+                this.platforms.push({x: 4000, y: 650, width: 300, height: 150, color: '#8b4513'});
+                this.platforms.push({x: 3800, y: 550, width: 120, height: 20, color: '#654321'});
+                this.platforms.push({x: 3650, y: 480, width: 80, height: 20, color: '#654321'});
+                this.platforms.push({x: 3500, y: 420, width: 100, height: 20, color: '#654321'});
+
+                // Vertical climbing section
+                this.platforms.push({x: 3300, y: 600, width: 100, height: 20, color: '#654321'});
+                this.platforms.push({x: 3150, y: 520, width: 80, height: 20, color: '#654321'});
+                this.platforms.push({x: 3000, y: 440, width: 100, height: 20, color: '#654321'});
+                this.platforms.push({x: 2850, y: 360, width: 80, height: 20, color: '#654321'});
+
+                // Primm section first - phase wall challenge
+                this.platforms.push({x: 2650, y: 650, width: 150, height: 150, color: '#8b4513'});
+                
+                this.objects.push({
+                    type: 'phaseWall',
+                    x: 2450, y: 450,
+                    width: 25, height: 200,
+                    color: 'rgba(138, 43, 226, 0.6)'
+                });
+
+                // Multiple phase walls for extra challenge
+                this.objects.push({
+                    type: 'phaseWall',
+                    x: 2350, y: 350,
+                    width: 25, height: 150,
+                    color: 'rgba(138, 43, 226, 0.6)'
+                });
+                
+                this.platforms.push({x: 2200, y: 580, width: 100, height: 20, color: '#654321'});
+                this.platforms.push({x: 2050, y: 520, width: 80, height: 20, color: '#654321'});
+
+                // Flying section for Mister Underpants - vertical towers
+                this.platforms.push({x: 1900, y: 650, width: 80, height: 150, color: '#8b4513'});
+                this.platforms.push({x: 1700, y: 450, width: 80, height: 20, color: '#654321'});
+                this.platforms.push({x: 1500, y: 300, width: 80, height: 20, color: '#654321'});
+                this.platforms.push({x: 1300, y: 500, width: 80, height: 20, color: '#654321'});
+
+                // Windman challenge - complex wind platform puzzle
+                this.platforms.push({x: 1150, y: 650, width: 100, height: 150, color: '#8b4513'});
+                
+                this.objects.push({
+                    type: 'windPlatform',
+                    x: 1000, y: 630,
+                    width: 80, height: 15,
+                    color: '#87CEEB',
+                    activated: false,
+                    targetY: 500
+                });
+
+                this.objects.push({
+                    type: 'windPlatform',
+                    x: 850, y: 520,
+                    width: 80, height: 15,
+                    color: '#87CEEB',
+                    activated: false,
+                    targetY: 350
+                });
+
+                // Final Teibi section - multiple small passages
+                this.platforms.push({x: 700, y: 650, width: 100, height: 150, color: '#8b4513'});
+                
+                // First small passage
+                this.platforms.push({x: 600, y: 400, width: 30, height: 220, color: '#555'});
+                this.platforms.push({x: 600, y: 620, width: 30, height: 30, color: '#555', gap: true});
+
+                // Second small passage (even smaller)
+                this.platforms.push({x: 450, y: 350, width: 30, height: 280, color: '#555'});
+                this.platforms.push({x: 450, y: 620, width: 30, height: 10, color: '#555', gap: true});
+
+                // Goal area - left side
+                this.platforms.push({x: 200, y: 400, width: 100, height: 20, color: '#654321'});
+                this.platforms.push({x: 50, y: 300, width: 150, height: 20, color: '#654321'});
+
+                // Goal
+                this.objects.push({
+                    type: 'goal',
+                    x: 100, y: 250,
+                    width: 50, height: 50,
+                    color: '#ffd700'
+                });
+
+                // Add collectible coins
+                this.objects.push({type: 'coin', x: 3750, y: 520, width: 15, height: 15, color: '#ffd700', collected: false});
+                this.objects.push({type: 'coin', x: 3000, y: 410, width: 15, height: 15, color: '#ffd700', collected: false});
+                this.objects.push({type: 'coin', x: 1500, y: 270, width: 15, height: 15, color: '#ffd700', collected: false});
+                this.objects.push({type: 'coin', x: 850, y: 490, width: 15, height: 15, color: '#ffd700', collected: false});
+                this.objects.push({type: 'coin', x: 550, y: 590, width: 15, height: 15, color: '#ffd700', collected: false});
+
+                // Level 2 enemies (normal difficulty)
+                this.enemies.push({
+                    x: 3400, y: 570,
+                    width: 25, height: 25,
+                    color: '#dc2626',
+                    vx: 1.5,
+                    patrol: {min: 3300, max: 3500},
+                    alive: true
+                });
+
+                this.enemies.push({
+                    x: 2800, y: 410,
+                    width: 25, height: 25,
+                    color: '#dc2626',
+                    vx: 2,
+                    patrol: {min: 2700, max: 2900},
+                    alive: true
+                });
+
+                this.enemies.push({
+                    x: 1400, y: 470,
+                    width: 25, height: 25,
+                    color: '#dc2626',
+                    vx: 1.8,
+                    patrol: {min: 1300, max: 1500},
+                    alive: true
+                });
+
+                this.enemies.push({
+                    x: 900, y: 620,
+                    width: 25, height: 25,
+                    color: '#dc2626',
+                    vx: 1.3,
+                    patrol: {min: 850, max: 1050},
+                    alive: true
+                });
+
+                // Hardcore mode - even more enemies for level 2
+                if (difficulty === 'hardcore') {
+                    // Additional enemies throughout level 2
+                    this.enemies.push({
+                        x: 3700, y: 520,
+                        width: 25, height: 25,
+                        color: '#dc2626',
+                        vx: 2.2,
+                        patrol: {min: 3650, max: 3800},
+                        alive: true
+                    });
+                    
+                    this.enemies.push({
+                        x: 3100, y: 490,
+                        width: 25, height: 25,
+                        color: '#dc2626',
+                        vx: 1.7,
+                        patrol: {min: 3000, max: 3200},
+                        alive: true
+                    });
+
+                    this.enemies.push({
+                        x: 2500, y: 550,
+                        width: 25, height: 25,
+                        color: '#dc2626',
+                        vx: 2.5,
+                        patrol: {min: 2400, max: 2600},
+                        alive: true
+                    });
+
+                    this.enemies.push({
+                        x: 1800, y: 620,
+                        width: 25, height: 25,
+                        color: '#8b0000',
+                        vx: 2.8,
+                        patrol: {min: 1700, max: 1900},
+                        alive: true
+                    });
+
+                    this.enemies.push({
+                        x: 1200, y: 620,
+                        width: 25, height: 25,
+                        color: '#8b0000',
+                        vx: 3,
+                        patrol: {min: 1150, max: 1300},
+                        alive: true
+                    });
+
+                    this.enemies.push({
+                        x: 750, y: 620,
+                        width: 25, height: 25,
+                        color: '#dc2626',
+                        vx: 1.9,
+                        patrol: {min: 700, max: 800},
+                        alive: true
+                    });
+
+                    this.enemies.push({
+                        x: 400, y: 600,
+                        width: 25, height: 25,
+                        color: '#8b0000',
+                        vx: 2.3,
+                        patrol: {min: 350, max: 450},
+                        alive: true
+                    });
+                }
+
+                // Reset character positions for level 2
+                this.characters.forEach(char => {
+                    char.x = 4100;
+                    char.y = 400;
+                    char.vx = 0;
+                    char.vy = 0;
+                });
             }
 
             bindEvents() {
@@ -1345,6 +1569,7 @@
                 }
             }
 
+
             showTutorial() {
                 const tutorials = [
                     "Mister Underpants: Use arrow keys to move and jump. Hold UP to fly upward! Use flight to cross gaps and reach high places!",
@@ -1375,13 +1600,23 @@
             }
 
             gameComplete() {
-                const messageDiv = document.getElementById('gameMessage');
-                const titleDiv = document.getElementById('gameMessageTitle');
-                const textDiv = document.getElementById('gameMessageText');
-                
-                titleDiv.textContent = 'Level Complete!';
-                textDiv.textContent = 'Congratulations! You successfully used all characters to reach the goal!';
-                messageDiv.classList.remove('hidden');
+                if (currentLevel < maxLevel) {
+                    // Show level complete screen with next level button
+                    const messageDiv = document.getElementById('levelCompleteMessage');
+                    const textDiv = document.getElementById('levelCompleteText');
+                    
+                    textDiv.textContent = `Amazing! You completed Level ${currentLevel}! Ready for the next challenge?`;
+                    messageDiv.classList.remove('hidden');
+                } else {
+                    // Final game complete
+                    const messageDiv = document.getElementById('gameMessage');
+                    const titleDiv = document.getElementById('gameMessageTitle');
+                    const textDiv = document.getElementById('gameMessageText');
+                    
+                    titleDiv.textContent = 'Game Complete! 🏆';
+                    textDiv.textContent = 'Congratulations! You beat all levels! You are the ultimate Crime Kicker!';
+                    messageDiv.classList.remove('hidden');
+                }
             }
 
             gameLoop() {
