@@ -42,11 +42,13 @@
             </div>
         </div>
 
-        <!-- Coordinates Display -->
-        <div id="coordinates" class="absolute top-4 right-4 text-white text-sm bg-black bg-opacity-75 p-2 rounded pointer-events-auto">
-            <div>X: <span id="coordX">0</span> | Y: <span id="coordY">0</span></div>
-            <div>Character: <span id="coordChar">1</span></div>
+        <!-- Music Mute Button -->
+        <div class="absolute top-4 right-4 pointer-events-auto">
+            <button id="muteButton" onclick="toggleMusic()" class="bg-blue-500 text-white px-3 py-2 rounded hover:bg-blue-600 mb-2 text-sm">
+                🎵 ON
+            </button>
         </div>
+
 
         <!-- Controls Info -->
         <div class="absolute bottom-4 left-4 text-white text-sm bg-black bg-opacity-50 p-2 rounded pointer-events-auto">
@@ -57,7 +59,76 @@
 
     <canvas id="gameCanvas" width="1200" height="800"></canvas>
 
+    <!-- Audio Elements -->
+    <audio id="bgMusic1" loop>
+        <!-- Add your own music files here - any format works -->
+        <!-- <source src="music1.mp3" type="audio/mpeg"> -->
+        <!-- <source src="music1.wav" type="audio/wav"> -->
+        <!-- <source src="music1.ogg" type="audio/ogg"> -->
+        <!-- <source src="music1.m4a" type="audio/mp4"> -->
+    </audio>
+    
+    <audio id="bgMusic2" loop>
+        <!-- Add your own music files here - any format works -->
+        <!-- <source src="music2.mp3" type="audio/mpeg"> -->
+        <!-- <source src="music2.wav" type="audio/wav"> -->
+        <!-- <source src="music2.ogg" type="audio/ogg"> -->
+        <!-- <source src="music2.m4a" type="audio/mp4"> -->
+    </audio>
+
     <script>
+        // Audio System
+        let musicEnabled = true;
+        let currentMusic = null;
+        
+        function initAudio() {
+            const bgMusic1 = document.getElementById('bgMusic1');
+            const bgMusic2 = document.getElementById('bgMusic2');
+            
+            // Set volume
+            bgMusic1.volume = 0.3;
+            bgMusic2.volume = 0.3;
+            
+            // Start first track
+            currentMusic = bgMusic1;
+            if (musicEnabled) {
+                playMusic();
+            }
+            
+            // Switch between tracks periodically
+            setInterval(() => {
+                if (musicEnabled && currentMusic) {
+                    currentMusic.pause();
+                    currentMusic = currentMusic === bgMusic1 ? bgMusic2 : bgMusic1;
+                    playMusic();
+                }
+            }, 60000); // Switch every 60 seconds
+        }
+        
+        function playMusic() {
+            if (currentMusic && musicEnabled) {
+                currentMusic.currentTime = 0;
+                currentMusic.play().catch(e => console.log('Audio play failed:', e));
+            }
+        }
+        
+        function toggleMusic() {
+            musicEnabled = !musicEnabled;
+            const muteButton = document.getElementById('muteButton');
+            
+            if (musicEnabled) {
+                muteButton.textContent = '🎵 ON';
+                muteButton.className = 'bg-blue-500 text-white px-3 py-2 rounded hover:bg-blue-600 mb-2 text-sm';
+                playMusic();
+            } else {
+                muteButton.textContent = '🔇 OFF';
+                muteButton.className = 'bg-red-500 text-white px-3 py-2 rounded hover:bg-red-600 mb-2 text-sm';
+                if (currentMusic) {
+                    currentMusic.pause();
+                }
+            }
+        }
+
         // Game Engine
         class Game {
             constructor() {
@@ -517,9 +588,6 @@
                 
                 // Check if player fell off the level
                 this.checkFallDeath();
-                
-                // Update coordinate display
-                this.updateCoordinateDisplay();
             }
 
             checkCollisions(char) {
@@ -816,12 +884,6 @@
                 this.ctx.restore();
             }
 
-            updateCoordinateDisplay() {
-                const char = this.characters[this.currentCharacter];
-                document.getElementById('coordX').textContent = Math.round(char.x);
-                document.getElementById('coordY').textContent = Math.round(char.y);
-                document.getElementById('coordChar').textContent = this.currentCharacter + 1;
-            }
 
             drawCharacter(char, index) {
                 const x = char.x;
@@ -1017,6 +1079,9 @@
 
         // Start the game
         const game = new Game();
+        
+        // Initialize audio system
+        initAudio();
         
         // Show initial tutorial
         setTimeout(() => {
