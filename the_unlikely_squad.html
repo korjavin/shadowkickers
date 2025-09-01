@@ -35,20 +35,32 @@
 
         <!-- Start Screen -->
         <div id="startScreen" class="absolute inset-0 bg-gradient-to-b from-blue-400 to-green-400 flex items-center justify-center pointer-events-auto">
-            <div class="bg-white p-8 rounded-lg text-center shadow-lg max-w-md">
+            <div class="bg-white p-8 rounded-lg text-center shadow-lg max-w-lg">
                 <h1 class="text-4xl font-bold mb-2 text-gray-800">Crime Kickers vs The Bad Guys</h1>
                 <p class="text-gray-600 mb-6">A superhero platformer adventure!</p>
                 
                 <div class="mb-6">
+                    <h3 class="text-lg font-semibold mb-3">Choose Level:</h3>
+                    <div class="flex space-x-2 mb-4">
+                        <button id="level1Btn" onclick="selectLevel(1)" class="flex-1 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors border-2 border-white">
+                            Level 1
+                        </button>
+                        <button id="level2Btn" onclick="selectLevel(2)" class="flex-1 bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 transition-colors border-2 border-gray-400">
+                            Level 2
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="mb-6">
                     <h3 class="text-lg font-semibold mb-3">Choose Difficulty:</h3>
                     <div class="space-y-2">
-                        <button onclick="startGame('easy')" class="w-full bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-colors">
+                        <button onclick="startSelectedGame('easy')" class="w-full bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-colors">
                             Easy - 3 Hearts ❤️❤️❤️
                         </button>
-                        <button onclick="startGame('normal')" class="w-full bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors">
+                        <button onclick="startSelectedGame('normal')" class="w-full bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors">
                             Normal - No extra lives
                         </button>
-                        <button onclick="startGame('hardcore')" class="w-full bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition-colors">
+                        <button onclick="startSelectedGame('hardcore')" class="w-full bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition-colors">
                             Hardcore - More enemies! 💀
                         </button>
                     </div>
@@ -156,6 +168,12 @@
             }
         }
         
+        function resumeMusic() {
+            if (currentMusic && musicEnabled && currentMusic.paused) {
+                currentMusic.play().catch(e => console.log('Audio play failed:', e));
+            }
+        }
+        
         function toggleMusic() {
             musicEnabled = !musicEnabled;
             const muteButton = document.getElementById('muteButton');
@@ -179,16 +197,19 @@
         let hearts = 0;
         let gameStarted = false;
         let currentLevel = 1;
-        let maxLevel = 1;
+        let selectedLevel = 1; // Track selected level
+        let maxLevel = 2;
 
         // Start game with selected difficulty
         function startGame(selectedDifficulty, level = 1) {
             difficulty = selectedDifficulty;
             currentLevel = level;
             
-            // Start music when user first interacts with the game
-            if (musicEnabled && currentMusic) {
+            // Only start music if it's not already playing (first time)
+            if (musicEnabled && currentMusic && currentMusic.paused) {
                 playMusic();
+            } else if (musicEnabled && currentMusic) {
+                resumeMusic();
             }
             
             // Set hearts based on difficulty
@@ -212,16 +233,51 @@
             gameStarted = true;
         }
 
-        function nextLevel() {
-            // No more levels, just show game complete
-            document.getElementById('levelCompleteMessage').classList.add('hidden');
-            const messageDiv = document.getElementById('gameMessage');
-            const titleDiv = document.getElementById('gameMessageTitle');
-            const textDiv = document.getElementById('gameMessageText');
+        // Level selection functions
+        function selectLevel(level) {
+            selectedLevel = level;
             
-            titleDiv.textContent = 'Game Complete! 🏆';
-            textDiv.textContent = 'Congratulations! You beat the game! You are the ultimate Crime Kicker!';
-            messageDiv.classList.remove('hidden');
+            // Update level button styling
+            const level1Btn = document.getElementById('level1Btn');
+            const level2Btn = document.getElementById('level2Btn');
+            
+            level1Btn.classList.remove('border-white', 'bg-blue-600');
+            level1Btn.classList.add('border-gray-400', 'bg-gray-500');
+            
+            level2Btn.classList.remove('border-white', 'bg-blue-600');
+            level2Btn.classList.add('border-gray-400', 'bg-gray-500');
+            
+            if (level === 1) {
+                level1Btn.classList.remove('border-gray-400', 'bg-gray-500');
+                level1Btn.classList.add('border-white', 'bg-blue-600');
+            } else {
+                level2Btn.classList.remove('border-gray-400', 'bg-gray-500');
+                level2Btn.classList.add('border-white', 'bg-blue-600');
+            }
+        }
+        
+        function startSelectedGame(selectedDifficulty) {
+            startGame(selectedDifficulty, selectedLevel);
+        }
+
+        function nextLevel() {
+            if (currentLevel < maxLevel) {
+                currentLevel++;
+                document.getElementById('levelCompleteMessage').classList.add('hidden');
+                
+                // Restart with same difficulty but next level
+                startGame(difficulty, currentLevel);
+            } else {
+                // No more levels, just show game complete
+                document.getElementById('levelCompleteMessage').classList.add('hidden');
+                const messageDiv = document.getElementById('gameMessage');
+                const titleDiv = document.getElementById('gameMessageTitle');
+                const textDiv = document.getElementById('gameMessageText');
+                
+                titleDiv.textContent = 'Game Complete! 🏆';
+                textDiv.textContent = 'Congratulations! You beat all levels! You are the ultimate Crime Kicker!';
+                messageDiv.classList.remove('hidden');
+            }
         }
 
         function updateHeartsDisplay() {
@@ -329,7 +385,11 @@
             }
 
             initLevel(levelNumber = 1) {
-                this.initLevel1();
+                if (levelNumber === 1) {
+                    this.initLevel1();
+                } else {
+                    this.generateLevel2();
+                }
             }
 
             initLevel1() {
@@ -653,6 +713,199 @@
                 }
             }
 
+            generateLevel2() {
+                // Procedural Level Generator - ensures all characters are required
+                console.log('Generating Level 2...');
+                
+                let currentX = 100; // Starting position
+                const groundHeight = 650;
+                const platformColors = ['#654321', '#8b4513', '#555'];
+                
+                // Starting platform
+                this.platforms.push({x: 0, y: groundHeight, width: 200, height: 150, color: '#8b4513'});
+                currentX = 200;
+                
+                // Generate 4 sections, one for each character's required ability
+                const sections = this.shuffleArray([
+                    { character: 'Teibi', type: 'crawl' },
+                    { character: 'Mister Underpants', type: 'fly' },
+                    { character: 'Primm', type: 'phase' },
+                    { character: 'Windman', type: 'wind' }
+                ]);
+                
+                sections.forEach((section, index) => {
+                    currentX = this.generateSection(currentX, section, index, groundHeight, platformColors);
+                });
+                
+                // Final goal platform and goal
+                this.platforms.push({x: currentX, y: 300, width: 150, height: 20, color: '#654321'});
+                this.objects.push({
+                    type: 'goal',
+                    x: currentX + 50, y: 250,
+                    width: 50, height: 50,
+                    color: '#ffd700'
+                });
+                
+                // Add random coins throughout
+                this.generateCoins(sections.length);
+                
+                // Add enemies based on difficulty
+                this.generateEnemies();
+                
+                console.log('Level 2 generated successfully!');
+            }
+
+            shuffleArray(array) {
+                const shuffled = [...array];
+                for (let i = shuffled.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+                }
+                return shuffled;
+            }
+
+            generateSection(startX, section, index, groundHeight, platformColors) {
+                const sectionWidth = 400 + Math.random() * 200; // 400-600 pixels wide
+                let currentX = startX;
+                
+                switch(section.type) {
+                    case 'crawl': // Teibi section - small gap
+                        currentX += 150;
+                        // Build a wall with a small gap
+                        this.platforms.push({x: currentX, y: 400, width: 30, height: 250, color: '#555'});
+                        this.platforms.push({x: currentX, y: 620, width: 30, height: 30, color: '#555', gap: true});
+                        
+                        // Platform after the gap
+                        currentX += 50;
+                        this.platforms.push({x: currentX, y: groundHeight, width: 150, height: 150, color: platformColors[0]});
+                        currentX += 150;
+                        break;
+                        
+                    case 'fly': // Mister Underpants section - large gap only reachable by flying
+                        // Create a gap that's too wide to jump but perfect for flying
+                        const gapWidth = 200; // 200 pixel gap
+                        currentX += 50;
+                        
+                        // Platform before gap
+                        this.platforms.push({x: currentX, y: groundHeight, width: 100, height: 150, color: platformColors[1]});
+                        currentX += 100 + gapWidth;
+                        
+                        // Platform after gap (elevated to require flight)
+                        const elevatedHeight = 500 + Math.random() * 100;
+                        this.platforms.push({x: currentX, y: elevatedHeight, width: 120, height: 20, color: platformColors[1]});
+                        
+                        // Ground platform after flight section
+                        currentX += 120;
+                        this.platforms.push({x: currentX, y: groundHeight, width: 150, height: 150, color: platformColors[1]});
+                        currentX += 150;
+                        break;
+                        
+                    case 'phase': // Primm section - phase walls
+                        currentX += 100;
+                        this.platforms.push({x: currentX, y: groundHeight, width: 100, height: 150, color: platformColors[2]});
+                        currentX += 100;
+                        
+                        // Create a platform for the phase walls to sit on
+                        const phasePlatformY = groundHeight - 50;
+                        this.platforms.push({x: currentX - 25, y: phasePlatformY, width: 150, height: 200, color: platformColors[2]});
+                        
+                        // Multiple phase walls on the platform
+                        this.objects.push({
+                            type: 'phaseWall',
+                            x: currentX, y: phasePlatformY - 200,
+                            width: 25, height: 200,
+                            color: 'rgba(138, 43, 226, 0.6)'
+                        });
+                        currentX += 50;
+                        
+                        this.objects.push({
+                            type: 'phaseWall',
+                            x: currentX, y: phasePlatformY - 250,
+                            width: 25, height: 250,
+                            color: 'rgba(138, 43, 226, 0.6)'
+                        });
+                        currentX += 50;
+                        
+                        // Platform after phase walls
+                        this.platforms.push({x: currentX, y: groundHeight, width: 150, height: 150, color: platformColors[2]});
+                        currentX += 150;
+                        break;
+                        
+                    case 'wind': // Windman section - wind platforms
+                        currentX += 100;
+                        this.platforms.push({x: currentX, y: groundHeight, width: 100, height: 150, color: platformColors[0]});
+                        
+                        // Wind platform that needs to be activated
+                        const windPlatformX = currentX + 120;
+                        const windPlatformY = 630;
+                        const windTargetY = 400 + Math.random() * 100;
+                        
+                        this.objects.push({
+                            type: 'windPlatform',
+                            x: windPlatformX, y: windPlatformY,
+                            width: 100, height: 15,
+                            color: '#87CEEB',
+                            activated: false,
+                            targetY: windTargetY
+                        });
+                        
+                        // High platform that can only be reached via wind platform
+                        currentX = windPlatformX + 150;
+                        this.platforms.push({x: currentX, y: windTargetY - 50, width: 120, height: 20, color: platformColors[0]});
+                        
+                        // Ground platform after wind section
+                        currentX += 120;
+                        this.platforms.push({x: currentX, y: groundHeight, width: 150, height: 150, color: platformColors[0]});
+                        currentX += 150;
+                        break;
+                }
+                
+                return currentX;
+            }
+
+            generateCoins(numSections) {
+                // Generate random coins throughout the level
+                for (let i = 0; i < numSections + 2; i++) {
+                    const x = 200 + Math.random() * 3000; // Spread across level
+                    const y = 300 + Math.random() * 200;
+                    this.objects.push({
+                        type: 'coin', 
+                        x: x, y: y, 
+                        width: 15, height: 15, 
+                        color: '#ffd700', 
+                        collected: false
+                    });
+                }
+            }
+
+            generateEnemies() {
+                const baseEnemyCount = 4;
+                const enemyCount = difficulty === 'hardcore' ? baseEnemyCount * 2 : baseEnemyCount;
+                
+                for (let i = 0; i < enemyCount; i++) {
+                    const x = 300 + Math.random() * 2800; // Spread across level
+                    const patrolWidth = 100 + Math.random() * 100;
+                    
+                    this.enemies.push({
+                        x: x,
+                        y: 620, // Ground level
+                        width: 25, height: 25,
+                        color: difficulty === 'hardcore' && Math.random() > 0.5 ? '#8b0000' : '#dc2626',
+                        vx: 1 + Math.random() * 2,
+                        patrol: {min: Math.max(x - patrolWidth/2, 0), max: x + patrolWidth/2},
+                        alive: true
+                    });
+                }
+                
+                // Reset character positions for level 2
+                this.characters.forEach(char => {
+                    char.x = 100;
+                    char.y = 400;
+                    char.vx = 0;
+                    char.vy = 0;
+                });
+            }
+
 
             bindEvents() {
                 window.addEventListener('keydown', (e) => {
@@ -822,6 +1075,17 @@
                     char.dashCooldown = 60;
                     char.dashing = 15; // Dash lasts for 15 frames
                     
+                    // Create blade effect
+                    this.bladeEffects = this.bladeEffects || [];
+                    this.bladeEffects.push({
+                        x: char.x + char.width,
+                        y: char.y + char.height / 2 - 10,
+                        width: 25,
+                        height: 3,
+                        life: 15,
+                        maxLife: 15
+                    });
+                    
                     // Immediately check for enemies in current dash range
                     this.killEnemiesInDashPath(char);
                 }
@@ -886,6 +1150,7 @@
                 this.updateProjectiles();
                 this.updateObjects();
                 this.updateWindParticles();
+                this.updateBladeEffects();
                 this.updateCamera();
                 this.updateCooldowns();
 
@@ -1062,6 +1327,22 @@
                 });
             }
 
+            updateBladeEffects() {
+                if (!this.bladeEffects) return;
+                
+                this.bladeEffects = this.bladeEffects.filter(blade => {
+                    blade.life--;
+                    
+                    // Move blade forward during dash
+                    blade.x += 8; // Blade moves faster than character
+                    
+                    // Fade out over time
+                    blade.alpha = blade.life / blade.maxLife;
+                    
+                    return blade.life > 0;
+                });
+            }
+
             updateCamera() {
                 const char = this.characters[this.currentCharacter];
                 this.camera.x = char.x - this.canvas.width / 2;
@@ -1114,14 +1395,40 @@
             }
 
             respawnPlayer() {
-                // Simple respawn - move player back to start area
-                const char = this.characters[this.currentCharacter];
-                char.x = 100;
-                char.y = 400;
-                char.vx = 0;
-                char.vy = 0;
+                // Reset all characters to starting positions and states
+                this.characters.forEach((char, index) => {
+                    char.x = 100;
+                    char.y = 400;
+                    char.vx = 0;
+                    char.vy = 0;
+                    
+                    // Reset character-specific states
+                    if (index === 0) { // Mister Underpants
+                        char.flightFuel = char.maxFlightFuel;
+                    } else if (index === 2) { // Teibi
+                        char.isSmall = false;
+                        char.width = char.normalWidth;
+                        char.height = char.normalHeight;
+                    } else if (index === 3) { // Primm
+                        char.phasing = false;
+                        char.dashCooldown = 0;
+                        char.dashing = 0;
+                    }
+                });
                 
-                // Brief invincibility flash effect could be added here
+                // Switch back to character 1 (Mister Underpants)
+                this.currentCharacter = 0;
+                
+                // Update UI to reflect character switch to character 1
+                for (let i = 1; i <= 4; i++) {
+                    const elem = document.getElementById(`char${i}`);
+                    elem.classList.remove('border-white', 'border-gray-400');
+                    if (i === 1) {
+                        elem.classList.add('border-white');
+                    } else {
+                        elem.classList.add('border-gray-400');
+                    }
+                }
             }
 
             render() {
@@ -1191,6 +1498,27 @@
                     this.ctx.globalAlpha = 1;
                 }
 
+                // Draw blade effects
+                if (this.bladeEffects) {
+                    this.bladeEffects.forEach(blade => {
+                        this.ctx.globalAlpha = blade.alpha;
+                        
+                        // Draw blade slash effect
+                        this.ctx.fillStyle = '#c0c0c0'; // Silver blade
+                        this.ctx.fillRect(blade.x, blade.y, blade.width, blade.height);
+                        
+                        // Draw blade edge highlights
+                        this.ctx.fillStyle = '#ffffff'; // White highlights
+                        this.ctx.fillRect(blade.x, blade.y, blade.width, 1); // Top edge
+                        this.ctx.fillRect(blade.x, blade.y + blade.height - 1, blade.width, 1); // Bottom edge
+                        
+                        // Draw blade tip
+                        this.ctx.fillStyle = '#ffff00'; // Yellow spark at tip
+                        this.ctx.fillRect(blade.x + blade.width - 2, blade.y + 1, 2, 1);
+                    });
+                    this.ctx.globalAlpha = 1;
+                }
+
                 // Draw characters
                 this.characters.forEach((char, index) => {
                     if (index === this.currentCharacter) {
@@ -1237,11 +1565,22 @@
                         this.ctx.fillStyle = '#fdbcbc';
                         this.ctx.fillRect(x + 8, y, w - 16, 18);
                         
+                        // Normal eyes behind glasses
+                        this.ctx.fillStyle = '#000';
+                        this.ctx.fillRect(x + 11, y + 7, 2, 2);
+                        this.ctx.fillRect(x + 17, y + 7, 2, 2);
+                        
                         // Glasses
                         this.ctx.fillStyle = '#000';
                         this.ctx.fillRect(x + 10, y + 6, 4, 4);
                         this.ctx.fillRect(x + 16, y + 6, 4, 4);
                         this.ctx.fillRect(x + 14, y + 8, 2, 1);
+                        
+                        // Happy upward smile
+                        this.ctx.fillStyle = '#000';
+                        this.ctx.fillRect(x + 12, y + 12, 4, 1); // Center line
+                        this.ctx.fillRect(x + 11, y + 11, 2, 1); // Left curve up
+                        this.ctx.fillRect(x + 15, y + 11, 2, 1); // Right curve up
                         
                         // Arms
                         this.ctx.fillStyle = '#fdbcbc';
@@ -1269,6 +1608,17 @@
                         // Hair
                         this.ctx.fillStyle = '#8b4513';
                         this.ctx.fillRect(x + 6, y, w - 12, 8);
+                        
+                        // Normal eyes
+                        this.ctx.fillStyle = '#000';
+                        this.ctx.fillRect(x + 10, y + 9, 2, 2);
+                        this.ctx.fillRect(x + 16, y + 9, 2, 2);
+                        
+                        // Happy upward smile
+                        this.ctx.fillStyle = '#000';
+                        this.ctx.fillRect(x + 13, y + 13, 2, 1); // Center line
+                        this.ctx.fillRect(x + 12, y + 12, 2, 1); // Left curve up
+                        this.ctx.fillRect(x + 14, y + 12, 2, 1); // Right curve up
                         
                         // Arms
                         this.ctx.fillStyle = '#fdbcbc';
@@ -1298,6 +1648,17 @@
                             this.ctx.fillStyle = '#000';
                             this.ctx.fillRect(x + 2, y, w - 4, 3);
                             
+                            // Normal tiny eyes (small)
+                            this.ctx.fillStyle = '#000';
+                            this.ctx.fillRect(x + 5, y + h/4, 1, 1);
+                            this.ctx.fillRect(x + 8, y + h/4, 1, 1);
+                            
+                            // Happy upward smile (small)
+                            this.ctx.fillStyle = '#000';
+                            this.ctx.fillRect(x + 6, y + h/3, 3, 1); // Center line
+                            this.ctx.fillRect(x + 5, y + h/3 - 1, 1, 1); // Left up
+                            this.ctx.fillRect(x + 9, y + h/3 - 1, 1, 1); // Right up
+                            
                             // Body
                             this.ctx.fillStyle = '#22c55e';
                             this.ctx.fillRect(x + 4, y + h/2, w - 8, h/2 - 4);
@@ -1324,6 +1685,17 @@
                             this.ctx.fillStyle = '#000';
                             this.ctx.fillRect(x + 4, y, w - 8, 6);
                             
+                            // Normal eyes
+                            this.ctx.fillStyle = '#000';
+                            this.ctx.fillRect(x + 9, y + 8, 2, 2);
+                            this.ctx.fillRect(x + 15, y + 8, 2, 2);
+                            
+                            // Happy upward smile
+                            this.ctx.fillStyle = '#000';
+                            this.ctx.fillRect(x + 12, y + 12, 2, 1); // Center line
+                            this.ctx.fillRect(x + 11, y + 11, 2, 1); // Left curve up
+                            this.ctx.fillRect(x + 13, y + 11, 2, 1); // Right curve up
+                            
                             // Arms
                             this.ctx.fillStyle = '#fdbcbc';
                             this.ctx.fillRect(x + 2, y + 16, 3, 8);
@@ -1347,6 +1719,17 @@
                         // Visor
                         this.ctx.fillStyle = '#00ffff';
                         this.ctx.fillRect(x + 9, y + 6, w - 18, 4);
+                        
+                        // Normal glowing eyes behind visor
+                        this.ctx.fillStyle = '#ffffff';
+                        this.ctx.fillRect(x + 10, y + 7, 2, 2);
+                        this.ctx.fillRect(x + 16, y + 7, 2, 2);
+                        
+                        // Happy upward smile (bright purple)
+                        this.ctx.fillStyle = '#e9d5ff';
+                        this.ctx.fillRect(x + 13, y + 12, 2, 1); // Center line
+                        this.ctx.fillRect(x + 12, y + 11, 2, 1); // Left curve up
+                        this.ctx.fillRect(x + 14, y + 11, 2, 1); // Right curve up
                         
                         // Arms
                         this.ctx.fillStyle = '#a855f7';
@@ -1405,14 +1788,23 @@
 
             gameComplete() {
                 this.gameEnded = true; // Stop the game loop
-                // Final game complete
-                const messageDiv = document.getElementById('gameMessage');
-                const titleDiv = document.getElementById('gameMessageTitle');
-                const textDiv = document.getElementById('gameMessageText');
-                
-                titleDiv.textContent = 'Game Complete! 🏆';
-                textDiv.textContent = 'Congratulations! You beat the game! You are the ultimate Crime Kicker!';
-                messageDiv.classList.remove('hidden');
+                if (currentLevel < maxLevel) {
+                    // Show level complete screen with next level button
+                    const messageDiv = document.getElementById('levelCompleteMessage');
+                    const textDiv = document.getElementById('levelCompleteText');
+                    
+                    textDiv.textContent = `Amazing! You completed Level ${currentLevel}! Ready for the next challenge?`;
+                    messageDiv.classList.remove('hidden');
+                } else {
+                    // Final game complete
+                    const messageDiv = document.getElementById('gameMessage');
+                    const titleDiv = document.getElementById('gameMessageTitle');
+                    const textDiv = document.getElementById('gameMessageText');
+                    
+                    titleDiv.textContent = 'Game Complete! 🏆';
+                    textDiv.textContent = 'Congratulations! You beat all levels! You are the ultimate Crime Kicker!';
+                    messageDiv.classList.remove('hidden');
+                }
             }
 
             gameLoop() {
@@ -1432,6 +1824,17 @@
             // Reset game variables
             gameStarted = false;
             currentLevel = 1;
+            
+            // Reset character selection UI to character 1
+            for (let i = 1; i <= 4; i++) {
+                const elem = document.getElementById(`char${i}`);
+                elem.classList.remove('border-white', 'border-gray-400');
+                if (i === 1) {
+                    elem.classList.add('border-white');
+                } else {
+                    elem.classList.add('border-gray-400');
+                }
+            }
             
             // Show start screen again
             document.getElementById('startScreen').classList.remove('hidden');
