@@ -310,6 +310,7 @@
                 this.platforms = [];
                 this.objects = [];
                 this.projectiles = [];
+                this.levelBounds = { minX: 0, maxX: 5000, minY: 0, maxY: 1200 };
                 this.gameEnded = false;
                 
                 this.gravity = 0.8;
@@ -422,10 +423,20 @@
                     text: 'Small passage ahead!'
                 });
 
+                // Additional Teibi challenges - multiple small passages
+                // Elevated platform with small horizontal tunnel
+                this.platforms.push({x: 1050, y: 450, width: 80, height: 20, color: '#654321'});
+                
+                // Horizontal crawl tunnel
+                this.platforms.push({x: 1150, y: 350, width: 40, height: 150, color: '#555'});
+                this.platforms.push({x: 1150, y: 480, width: 40, height: 15, color: '#555', gap: true}); // Horizontal passage
+                
+                // Platform after tunnel
+                this.platforms.push({x: 1220, y: 500, width: 80, height: 20, color: '#654321'});
+
                 // More platforming after Teibi section
-                this.platforms.push({x: 1150, y: 550, width: 100, height: 20, color: '#654321'});
-                this.platforms.push({x: 1300, y: 480, width: 80, height: 20, color: '#654321'});
-                this.platforms.push({x: 1450, y: 420, width: 120, height: 20, color: '#654321'});
+                this.platforms.push({x: 1350, y: 480, width: 80, height: 20, color: '#654321'});
+                this.platforms.push({x: 1500, y: 420, width: 120, height: 20, color: '#654321'});
 
                 // Mister Underpants section - wide chasm with interesting terrain
                 this.platforms.push({x: 1650, y: 650, width: 100, height: 150, color: '#8b4513'});
@@ -711,6 +722,9 @@
                         alive: true
                     });
                 }
+                
+                // Calculate level boundaries for Level 1 too
+                this.calculateLevelBounds();
             }
 
             generateLevel2() {
@@ -733,15 +747,19 @@
                     { character: 'Windman', type: 'wind' }
                 ]);
                 
+                let finalPlatformY = groundHeight; // Track the height of the final platform
                 sections.forEach((section, index) => {
-                    currentX = this.generateSection(currentX, section, index, groundHeight, platformColors);
+                    const result = this.generateSection(currentX, section, index, groundHeight, platformColors);
+                    currentX = result.x;
+                    finalPlatformY = result.y; // Get the Y position of the last platform created
                 });
                 
-                // Final goal platform and goal
-                this.platforms.push({x: currentX, y: 300, width: 150, height: 20, color: '#654321'});
+                // Final goal platform and goal (positioned relative to last section)
+                const goalPlatformY = Math.min(finalPlatformY, groundHeight - 100); // Ensure it's accessible
+                this.platforms.push({x: currentX, y: goalPlatformY, width: 150, height: 20, color: '#654321'});
                 this.objects.push({
                     type: 'goal',
-                    x: currentX + 50, y: 250,
+                    x: currentX + 50, y: goalPlatformY - 50,
                     width: 50, height: 50,
                     color: '#ffd700'
                 });
@@ -751,6 +769,9 @@
                 
                 // Add enemies based on difficulty
                 this.generateEnemies();
+                
+                // Calculate level boundaries based on generated platforms
+                this.calculateLevelBounds();
                 
                 console.log('Level 2 generated successfully!');
             }
@@ -767,18 +788,52 @@
             generateSection(startX, section, index, groundHeight, platformColors) {
                 const sectionWidth = 400 + Math.random() * 200; // 400-600 pixels wide
                 let currentX = startX;
+                let finalY = groundHeight; // Track the Y position of the last platform in this section
                 
                 switch(section.type) {
-                    case 'crawl': // Teibi section - small gap
+                    case 'crawl': // Teibi section - multiple small gaps
                         currentX += 150;
-                        // Build a wall with a small gap
+                        
+                        // First wall with small gap at bottom
                         this.platforms.push({x: currentX, y: 400, width: 30, height: 250, color: '#555'});
                         this.platforms.push({x: currentX, y: 620, width: 30, height: 30, color: '#555', gap: true});
                         
-                        // Platform after the gap
+                        // Platform after first gap
                         currentX += 50;
-                        this.platforms.push({x: currentX, y: groundHeight, width: 150, height: 150, color: platformColors[0]});
-                        currentX += 150;
+                        this.platforms.push({x: currentX, y: groundHeight, width: 100, height: 150, color: platformColors[0]});
+                        
+                        // Second challenge - elevated platform with horizontal tunnel
+                        currentX += 120;
+                        this.platforms.push({x: currentX, y: 500, width: 80, height: 20, color: platformColors[0]});
+                        
+                        // Horizontal crawl tunnel
+                        currentX += 100;
+                        this.platforms.push({x: currentX, y: 350, width: 35, height: 200, color: '#555'});
+                        this.platforms.push({x: currentX, y: 480, width: 35, height: 20, color: '#555', gap: true}); // Horizontal passage
+                        
+                        // Multi-level maze structure for extra challenge
+                        currentX += 50;
+                        
+                        // Create a three-layer platform structure with small passages
+                        const mazeX = currentX;
+                        
+                        // Bottom layer (ground level)
+                        this.platforms.push({x: mazeX, y: groundHeight, width: 200, height: 80, color: platformColors[0]});
+                        
+                        // Middle layer with gaps
+                        this.platforms.push({x: mazeX, y: groundHeight - 80, width: 60, height: 40, color: '#555'});
+                        this.platforms.push({x: mazeX + 80, y: groundHeight - 80, width: 60, height: 40, color: '#555'});
+                        this.platforms.push({x: mazeX + 160, y: groundHeight - 80, width: 40, height: 40, color: '#555'});
+                        
+                        // Small gaps in middle layer (only Teibi can fit)
+                        this.platforms.push({x: mazeX + 60, y: groundHeight - 60, width: 20, height: 15, color: '#555', gap: true});
+                        this.platforms.push({x: mazeX + 140, y: groundHeight - 60, width: 20, height: 15, color: '#555', gap: true});
+                        
+                        // Top exit platform
+                        this.platforms.push({x: mazeX + 220, y: groundHeight - 100, width: 100, height: 20, color: platformColors[0]});
+                        
+                        finalY = groundHeight - 100;
+                        currentX = mazeX + 320;
                         break;
                         
                     case 'fly': // Mister Underpants section - large gap only reachable by flying
@@ -797,6 +852,7 @@
                         // Ground platform after flight section
                         currentX += 120;
                         this.platforms.push({x: currentX, y: groundHeight, width: 150, height: 150, color: platformColors[1]});
+                        finalY = groundHeight;
                         currentX += 150;
                         break;
                         
@@ -828,6 +884,7 @@
                         
                         // Platform after phase walls
                         this.platforms.push({x: currentX, y: groundHeight, width: 150, height: 150, color: platformColors[2]});
+                        finalY = groundHeight;
                         currentX += 150;
                         break;
                         
@@ -856,11 +913,12 @@
                         // Ground platform after wind section
                         currentX += 120;
                         this.platforms.push({x: currentX, y: groundHeight, width: 150, height: 150, color: platformColors[0]});
+                        finalY = groundHeight;
                         currentX += 150;
                         break;
                 }
                 
-                return currentX;
+                return { x: currentX, y: finalY };
             }
 
             generateCoins(numSections) {
@@ -904,6 +962,32 @@
                     char.vx = 0;
                     char.vy = 0;
                 });
+            }
+
+            calculateLevelBounds() {
+                if (this.platforms.length === 0) return;
+                
+                // Find the actual boundaries of all platforms
+                let minX = Infinity, maxX = -Infinity;
+                let minY = Infinity, maxY = -Infinity;
+                
+                this.platforms.forEach(platform => {
+                    minX = Math.min(minX, platform.x);
+                    maxX = Math.max(maxX, platform.x + platform.width);
+                    minY = Math.min(minY, platform.y);
+                    maxY = Math.max(maxY, platform.y + platform.height);
+                });
+                
+                // Add some buffer zones
+                this.levelBounds = {
+                    minX: minX - 100,
+                    maxX: maxX + 100, 
+                    minY: minY - 100,
+                    maxY: maxY + 300 // Extra space below lowest platform for fall detection
+                };
+                
+                console.log('Level bounds calculated:', this.levelBounds);
+                console.log(`Level has ${this.platforms.length} platforms`);
             }
 
 
@@ -1382,9 +1466,17 @@
 
             checkFallDeath() {
                 const char = this.characters[this.currentCharacter];
-                const deathHeight = 900; // If player falls below this Y coordinate, they die
                 
-                if (char.y > deathHeight) {
+                // Check if character has fallen outside level boundaries
+                const fellOffLevel = char.y > this.levelBounds.maxY || 
+                                   char.x < this.levelBounds.minX || 
+                                   char.x > this.levelBounds.maxX;
+                
+                if (fellOffLevel) {
+                    console.log(`Fall detected! Character at (${char.x}, ${char.y}), bounds:`, this.levelBounds);
+                    console.log(`Y check: ${char.y} > ${this.levelBounds.maxY} = ${char.y > this.levelBounds.maxY}`);
+                    console.log(`X check: ${char.x} < ${this.levelBounds.minX} = ${char.x < this.levelBounds.minX} OR ${char.x} > ${this.levelBounds.maxX} = ${char.x > this.levelBounds.maxX}`);
+                    
                     if (!loseHeart()) {
                         this.gameOver("Oops! The squad member fell into the abyss!");
                     } else {
