@@ -1523,8 +1523,70 @@
                 }
             }
 
+            drawBackground() {
+                const ctx = this.ctx;
+                const W = this.canvas.width;
+                const H = this.canvas.height;
+
+                // On-canvas vertical sky gradient (matches the CSS fallback #87CEEB -> #98FB98)
+                const sky = ctx.createLinearGradient(0, 0, 0, H);
+                sky.addColorStop(0, '#87CEEB');
+                sky.addColorStop(1, '#98FB98');
+                ctx.fillStyle = sky;
+                ctx.fillRect(0, 0, W, H);
+
+                // Use the UNSHAKEN camera.x for parallax so the background never jitters
+                // with screen shake (Task 6) and keeps a stable depth cue.
+                const camX = this.camera.x;
+
+                // --- Far hills (slowest) ---
+                const farTile = 600;
+                const farBaseY = H * 0.75;
+                let farOffset = -((camX * 0.2) % farTile);
+                if (farOffset > 0) farOffset -= farTile;
+                ctx.fillStyle = '#7fcf8f'; // derived darker/desaturated grass tone
+                for (let x = farOffset; x < W + farTile; x += farTile) {
+                    ctx.beginPath();
+                    ctx.arc(x + farTile * 0.5, farBaseY, farTile * 0.55, Math.PI, 0);
+                    ctx.fill();
+                }
+
+                // --- Clouds (medium) ---
+                const cloudTile = 500;
+                let cloudOffset = -((camX * 0.4) % cloudTile);
+                if (cloudOffset > 0) cloudOffset -= cloudTile;
+                ctx.globalAlpha = 0.85;
+                ctx.fillStyle = '#ffffff';
+                for (let x = cloudOffset; x < W + cloudTile; x += cloudTile) {
+                    const cx = x + cloudTile * 0.5;
+                    const cy = H * 0.22;
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, 26, 0, Math.PI * 2);
+                    ctx.arc(cx + 30, cy + 6, 32, 0, Math.PI * 2);
+                    ctx.arc(cx + 66, cy, 24, 0, Math.PI * 2);
+                    ctx.arc(cx + 34, cy - 14, 24, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.globalAlpha = 1;
+
+                // --- Near hills (fastest of the background layers, still slower than world) ---
+                const nearTile = 420;
+                const nearBaseY = H * 0.88;
+                let nearOffset = -((camX * 0.6) % nearTile);
+                if (nearOffset > 0) nearOffset -= nearTile;
+                ctx.fillStyle = '#86d896'; // slightly brighter than far hills for depth
+                for (let x = nearOffset; x < W + nearTile; x += nearTile) {
+                    ctx.beginPath();
+                    ctx.arc(x + nearTile * 0.5, nearBaseY, nearTile * 0.6, Math.PI, 0);
+                    ctx.fill();
+                }
+            }
+
             render() {
                 this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+                // Parallax background (screen space, before the camera translate)
+                this.drawBackground();
 
                 // Save context for camera
                 this.ctx.save();

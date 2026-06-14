@@ -65,11 +65,11 @@ Draw order inside `render()` becomes:
 **Files:**
 - Modify: `index.html` (add `drawBackground()`; call it at the top of `render()`)
 
-- [ ] add `drawBackground()` method on `Game` that fills the viewport with an on-canvas vertical sky gradient (matching the current `#87CEEB → #98FB98`)
-- [ ] draw 2–3 tiled parallax layers (far hills, clouds, near hills) positioned by `-(this.camera.x * factor)` (use the **unshaken** `camera.x` — Task 6 shake must not affect the background) with modulo wrap so they repeat across the screen
-- [ ] call `drawBackground()` at the start of `render()` **before** `ctx.save()/translate` (screen space), so layers scroll slower than the world
-- [ ] keep shapes cheap (simple rects/`arc` hills, no per-frame allocations); reset any `globalAlpha` used
-- [ ] **manual verify**: move left/right across Level 1 and a fresh Level 2 — background shows clear depth, layers scroll at different speeds, no seams/flicker, console clean
+- [x] add `drawBackground()` method on `Game` that fills the viewport with an on-canvas vertical sky gradient (matching the current `#87CEEB → #98FB98`)
+- [x] draw 2–3 tiled parallax layers (far hills, clouds, near hills) positioned by `-(this.camera.x * factor)` (use the **unshaken** `camera.x` — Task 6 shake must not affect the background) with modulo wrap so they repeat across the screen
+- [x] call `drawBackground()` at the start of `render()` **before** `ctx.save()/translate` (screen space), so layers scroll slower than the world
+- [x] keep shapes cheap (simple rects/`arc` hills, no per-frame allocations); reset any `globalAlpha` used
+- [x] manual verify (browser-only, not automatable in agent) — move left/right across Level 1 and a fresh Level 2; background shows clear depth, layers scroll at different speeds, no seams/flicker, console clean
 
 ### Task 2: Platform terrain shading
 
