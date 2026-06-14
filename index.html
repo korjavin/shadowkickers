@@ -1582,6 +1582,73 @@
                 }
             }
 
+            // Parse a hex color ('#abc' or '#aabbcc') into {r,g,b}; returns null if not hex.
+            parseHexColor(hex) {
+                if (typeof hex !== 'string') return null;
+                let h = hex.trim();
+                if (h[0] !== '#') return null;
+                h = h.slice(1);
+                if (h.length === 3) {
+                    h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+                }
+                if (h.length !== 6) return null;
+                const r = parseInt(h.slice(0, 2), 16);
+                const g = parseInt(h.slice(2, 4), 16);
+                const b = parseInt(h.slice(4, 6), 16);
+                if (isNaN(r) || isNaN(g) || isNaN(b)) return null;
+                return { r, g, b };
+            }
+
+            // Shift an {r,g,b} toward white (amount > 0) or black (amount < 0), amount in [-1,1].
+            shadeColor(rgb, amount) {
+                const clamp = v => Math.max(0, Math.min(255, Math.round(v)));
+                let r, g, b;
+                if (amount >= 0) {
+                    r = rgb.r + (255 - rgb.r) * amount;
+                    g = rgb.g + (255 - rgb.g) * amount;
+                    b = rgb.b + (255 - rgb.b) * amount;
+                } else {
+                    const k = 1 + amount; // amount negative => k in [0,1)
+                    r = rgb.r * k;
+                    g = rgb.g * k;
+                    b = rgb.b * k;
+                }
+                return `rgb(${clamp(r)}, ${clamp(g)}, ${clamp(b)})`;
+            }
+
+            // Draw a single platform as shaded terrain: vertical gradient body (lighter top ->
+            // darker bottom), a lighter grass/edge highlight strip across the top, and a darker
+            // 2px bevel line along the bottom. All shades are derived from p.color so the
+            // existing palette is preserved. Visual-only; does not affect collision/geometry.
+            drawPlatform(p) {
+                const ctx = this.ctx;
+                const rgb = this.parseHexColor(p.color);
+
+                // Fallback for any non-hex platform color: keep the original flat fill.
+                if (!rgb) {
+                    ctx.fillStyle = p.color;
+                    ctx.fillRect(p.x, p.y, p.width, p.height);
+                    return;
+                }
+
+                // Vertical gradient body: top a touch lighter, bottom noticeably darker.
+                const grad = ctx.createLinearGradient(p.x, p.y, p.x, p.y + p.height);
+                grad.addColorStop(0, this.shadeColor(rgb, 0.18));
+                grad.addColorStop(1, this.shadeColor(rgb, -0.28));
+                ctx.fillStyle = grad;
+                ctx.fillRect(p.x, p.y, p.width, p.height);
+
+                // Grass/edge highlight strip along the top (scaled to platform height, capped).
+                const stripH = Math.max(2, Math.min(6, Math.round(p.height * 0.18)));
+                ctx.fillStyle = this.shadeColor(rgb, 0.42);
+                ctx.fillRect(p.x, p.y, p.width, stripH);
+
+                // Faux-bevel: 2px darker line along the bottom edge.
+                const bevelH = Math.min(2, p.height);
+                ctx.fillStyle = this.shadeColor(rgb, -0.5);
+                ctx.fillRect(p.x, p.y + p.height - bevelH, p.width, bevelH);
+            }
+
             render() {
                 this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
@@ -1592,10 +1659,9 @@
                 this.ctx.save();
                 this.ctx.translate(-this.camera.x, -this.camera.y);
 
-                // Draw platforms
+                // Draw platforms (shaded terrain via drawPlatform)
                 this.platforms.forEach(platform => {
-                    this.ctx.fillStyle = platform.color;
-                    this.ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
+                    this.drawPlatform(platform);
                 });
 
                 // Draw objects

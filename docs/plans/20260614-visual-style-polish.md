@@ -76,11 +76,11 @@ Draw order inside `render()` becomes:
 **Files:**
 - Modify: `index.html` (add `drawPlatform()`; replace the platform draw loop in `render()`)
 
-- [ ] add `drawPlatform(p)` helper: vertical `createLinearGradient` body shaded from `p.color` (lighter top → darker bottom)
-- [ ] add a lighter "grass/edge" highlight strip along the platform top (a few px tall)
-- [ ] add a 2px darker line along the bottom edge for a faux-bevel
-- [ ] replace the flat `fillRect` platform loop in `render()` (~L1534) to call `drawPlatform(p)`
-- [ ] **manual verify**: platforms read as shaded terrain (top edge + depth) on both levels; phase walls (which are `objects`, not `platforms` — see the object loop ~L1540, so `drawPlatform` does not touch them) remain visually distinct; console clean
+- [x] add `drawPlatform(p)` helper: vertical `createLinearGradient` body shaded from `p.color` (lighter top → darker bottom)
+- [x] add a lighter "grass/edge" highlight strip along the platform top (a few px tall)
+- [x] add a 2px darker line along the bottom edge for a faux-bevel
+- [x] replace the flat `fillRect` platform loop in `render()` (~L1534) to call `drawPlatform(p)`
+- [x] manual verify (browser-only, not automatable in agent) — platforms read as shaded terrain (top edge + depth) on both levels; phase walls (which are `objects`, not `platforms` — so `drawPlatform` does not touch them) remain visually distinct; console clean
 
 ### Task 3: Contact shadows + active-character glow
 
