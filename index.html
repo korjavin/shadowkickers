@@ -310,6 +310,8 @@
                 this.platforms = [];
                 this.objects = [];
                 this.projectiles = [];
+                this.particles = [];
+                this.shake = { x: 0, y: 0, mag: 0 };
                 this.levelBounds = { minX: 0, maxX: 5000, minY: 0, maxY: 1200 };
                 this.gameEnded = false;
                 
@@ -1185,6 +1187,11 @@
                         // Kill enemies within dash range
                         if (dx < 40 && dy < 40) {
                             enemy.alive = false;
+                            // VISUAL ONLY: impact burst + largest screen shake. Placed here
+                            // (inside the `if (enemy.alive)` guard, right at the kill) so it
+                            // fires exactly once per enemy — this fn re-runs each dash frame,
+                            // but a dead enemy is skipped by the guard on later frames.
+                            this.spawnEnemyKill(enemy, { count: 14, speed: 4, size: 3.5, life: 28, shake: 11 });
                         }
                     }
                 });
@@ -1235,6 +1242,8 @@
                 this.updateObjects();
                 this.updateWindParticles();
                 this.updateBladeEffects();
+                this.updateParticles();
+                this.updateShake();
                 this.updateCamera();
                 this.updateCooldowns();
 
@@ -1261,9 +1270,13 @@
                         
                         // Top collision (landing on platform)
                         if (char.vy > 0 && char.y < platform.y) {
+                            // VISUAL ONLY: read impact velocity before it is zeroed to kick up
+                            // landing dust. Gentle steps (small vy) must not puff.
+                            const impactVy = char.vy;
                             char.y = platform.y - char.height;
                             char.vy = 0;
                             char.onGround = true;
+                            this.spawnLandingDust(char, impactVy);
                         }
                         // Bottom collision
                         else if (char.vy < 0 && char.y > platform.y) {
@@ -1291,13 +1304,26 @@
                         
                         if (obj.type === 'coin' && !obj.collected) {
                             obj.collected = true;
+                            // VISUAL ONLY: gold sparkle burst at the coin center (no shake).
+                            this.spawnParticles(obj.x + obj.width / 2, obj.y + obj.height / 2, {
+                                count: 8,
+                                color: ['#ffd700', '#fff3a0'],
+                                speed: 2.2,
+                                size: 2.5,
+                                life: 22,
+                                gravity: 0.08,
+                                spread: Math.PI * 2
+                            });
                             // Could add score here
                         } else if (obj.type === 'windPlatform') {
                             // Wind platforms act like solid platforms you can stand on
                             if (char.vy > 0 && char.y < obj.y) {
+                                // VISUAL ONLY: read impact velocity before zeroing for landing dust.
+                                const impactVy = char.vy;
                                 char.y = obj.y - char.height;
                                 char.vy = 0;
                                 char.onGround = true;
+                                this.spawnLandingDust(char, impactVy);
                             }
                         } else if (obj.type === 'phaseWall' && 
                                    !(this.currentCharacter === 3 && char.phasing)) {
@@ -1352,6 +1378,8 @@
                             // Player stomps enemy
                             enemy.alive = false;
                             char.vy = -8; // Bounce up after stomping
+                            // VISUAL ONLY: impact burst + small screen shake.
+                            this.spawnEnemyKill(enemy, { count: 10, speed: 3, size: 3, life: 24, shake: 5 });
                         } else {
                             // Player dies from touching enemy from side/below
                             if (!loseHeart()) {
@@ -1378,6 +1406,8 @@
                             proj.y + proj.height > enemy.y) {
                             enemy.alive = false;
                             proj.hit = true;
+                            // VISUAL ONLY: impact burst + medium screen shake.
+                            this.spawnEnemyKill(enemy, { count: 12, speed: 3.5, size: 3, life: 26, shake: 8 });
                         }
                     });
 
@@ -1409,6 +1439,104 @@
                     
                     return particle.life > 0;
                 });
+            }
+
+            // Generic particle spawner. Each particle: {x,y,vx,vy,life,maxLife,size,color,gravity}.
+            // The given x/y are stored as-is; callers pass world coordinates and the render block
+            // draws them inside the camera translate. opts: { count, color(s), speed, size, life,
+            // gravity, spread }. A hard cap on the live particle count bounds per-frame cost: once
+            // the array is at the cap, new spawns are ignored rather than allowed to grow without bound.
+            spawnParticles(x, y, opts) {
+                opts = opts || {};
+                const CAP = 200;
+                const count = opts.count != null ? opts.count : 6;
+                const colors = Array.isArray(opts.color)
+                    ? opts.color
+                    : [opts.color || '#c2a878'];
+                const speed = opts.speed != null ? opts.speed : 2;
+                const size = opts.size != null ? opts.size : 3;
+                const life = opts.life != null ? opts.life : 24;
+                const gravity = opts.gravity != null ? opts.gravity : 0.15;
+                const spread = opts.spread != null ? opts.spread : Math.PI; // upward fan by default
+
+                for (let i = 0; i < count; i++) {
+                    if (this.particles.length >= CAP) break; // hard cap reached, drop extras
+                    // Angle fans outward and upward: -PI/2 is straight up.
+                    const angle = -Math.PI / 2 + (Math.random() - 0.5) * spread;
+                    const spd = speed * (0.4 + Math.random() * 0.8);
+                    const ml = life * (0.7 + Math.random() * 0.6);
+                    this.particles.push({
+                        x: x,
+                        y: y,
+                        vx: Math.cos(angle) * spd,
+                        vy: Math.sin(angle) * spd,
+                        life: ml,
+                        maxLife: ml,
+                        size: size * (0.7 + Math.random() * 0.6),
+                        color: colors[(Math.random() * colors.length) | 0],
+                        gravity: gravity
+                    });
+                }
+            }
+
+            updateParticles() {
+                if (!this.particles || this.particles.length === 0) return;
+
+                this.particles = this.particles.filter(p => {
+                    p.vy += p.gravity || 0;
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.life--;
+                    return p.life > 0;
+                });
+            }
+
+            // VISUAL ONLY: kick up landing dust at a character's feet. Only puffs on a hard
+            // landing (impactVy past the threshold); gentle steps stay clean. Shared by the
+            // platform- and windPlatform-landing branches so the two stay identical.
+            spawnLandingDust(char, impactVy) {
+                const DUST_VY_THRESHOLD = 8;
+                if (impactVy <= DUST_VY_THRESHOLD) return;
+                this.spawnParticles(char.x + char.width / 2, char.y + char.height, {
+                    count: 6,
+                    color: ['#c2a878', '#d8c4a0'],
+                    speed: 2.4,
+                    size: 3,
+                    life: 22,
+                    gravity: 0.18,
+                    spread: Math.PI * 1.1
+                });
+            }
+
+            // VISUAL ONLY: entity-colored impact burst + paired screen shake on an enemy kill.
+            // Shared by the dash, stomp, and projectile kill sites; only count/speed/size/life
+            // and the shake magnitude differ (stomp < projectile < dash).
+            spawnEnemyKill(enemy, opts) {
+                this.spawnParticles(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, {
+                    count: opts.count,
+                    color: [enemy.color || '#ff4444', '#ffffff'],
+                    speed: opts.speed,
+                    size: opts.size,
+                    life: opts.life,
+                    gravity: 0.2,
+                    spread: Math.PI * 2
+                });
+                this.addShake(opts.shake);
+            }
+
+            // VISUAL ONLY: raise the screen-shake magnitude (impact feedback). Keeps the
+            // strongest pending shake so overlapping impacts don't cancel out.
+            addShake(mag) {
+                this.shake.mag = Math.max(this.shake.mag, mag);
+            }
+
+            // VISUAL ONLY: decay the shake toward 0 and recompute the per-frame offset.
+            // Math.random is fine here (runtime-only jitter, never persisted).
+            updateShake() {
+                this.shake.mag *= 0.85;
+                if (this.shake.mag < 0.3) this.shake.mag = 0;
+                this.shake.x = (Math.random() - 0.5) * 2 * this.shake.mag;
+                this.shake.y = (Math.random() - 0.5) * 2 * this.shake.mag;
             }
 
             updateBladeEffects() {
@@ -1523,26 +1651,211 @@
                 }
             }
 
+            drawBackground() {
+                const ctx = this.ctx;
+                const W = this.canvas.width;
+                const H = this.canvas.height;
+
+                // On-canvas vertical sky gradient (matches the CSS fallback #87CEEB -> #98FB98)
+                const sky = ctx.createLinearGradient(0, 0, 0, H);
+                sky.addColorStop(0, '#87CEEB');
+                sky.addColorStop(1, '#98FB98');
+                ctx.fillStyle = sky;
+                ctx.fillRect(0, 0, W, H);
+
+                // Use the UNSHAKEN camera.x for parallax so the background never jitters
+                // with screen shake (Task 6) and keeps a stable depth cue.
+                const camX = this.camera.x;
+
+                // --- Far hills (slowest) ---
+                const farTile = 600;
+                const farBaseY = H * 0.75;
+                let farOffset = -((camX * 0.2) % farTile);
+                if (farOffset > 0) farOffset -= farTile;
+                ctx.fillStyle = '#7fcf8f'; // derived darker/desaturated grass tone
+                for (let x = farOffset; x < W + farTile; x += farTile) {
+                    ctx.beginPath();
+                    ctx.arc(x + farTile * 0.5, farBaseY, farTile * 0.55, Math.PI, 0);
+                    ctx.fill();
+                }
+
+                // --- Clouds (medium) ---
+                const cloudTile = 500;
+                let cloudOffset = -((camX * 0.4) % cloudTile);
+                if (cloudOffset > 0) cloudOffset -= cloudTile;
+                ctx.globalAlpha = 0.85;
+                ctx.fillStyle = '#ffffff';
+                for (let x = cloudOffset; x < W + cloudTile; x += cloudTile) {
+                    const cx = x + cloudTile * 0.5;
+                    const cy = H * 0.22;
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, 26, 0, Math.PI * 2);
+                    ctx.arc(cx + 30, cy + 6, 32, 0, Math.PI * 2);
+                    ctx.arc(cx + 66, cy, 24, 0, Math.PI * 2);
+                    ctx.arc(cx + 34, cy - 14, 24, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.globalAlpha = 1;
+
+                // --- Near hills (fastest of the background layers, still slower than world) ---
+                const nearTile = 420;
+                const nearBaseY = H * 0.88;
+                let nearOffset = -((camX * 0.6) % nearTile);
+                if (nearOffset > 0) nearOffset -= nearTile;
+                ctx.fillStyle = '#86d896'; // slightly brighter than far hills for depth
+                for (let x = nearOffset; x < W + nearTile; x += nearTile) {
+                    ctx.beginPath();
+                    ctx.arc(x + nearTile * 0.5, nearBaseY, nearTile * 0.6, Math.PI, 0);
+                    ctx.fill();
+                }
+            }
+
+            // Parse a hex color ('#abc' or '#aabbcc') into {r,g,b}; returns null if not hex.
+            parseHexColor(hex) {
+                if (typeof hex !== 'string') return null;
+                let h = hex.trim();
+                if (h[0] !== '#') return null;
+                h = h.slice(1);
+                if (h.length === 3) {
+                    h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+                }
+                if (h.length !== 6) return null;
+                const r = parseInt(h.slice(0, 2), 16);
+                const g = parseInt(h.slice(2, 4), 16);
+                const b = parseInt(h.slice(4, 6), 16);
+                if (isNaN(r) || isNaN(g) || isNaN(b)) return null;
+                return { r, g, b };
+            }
+
+            // Shift an {r,g,b} toward white (amount > 0) or black (amount < 0), amount in [-1,1].
+            shadeColor(rgb, amount) {
+                const clamp = v => Math.max(0, Math.min(255, Math.round(v)));
+                let r, g, b;
+                if (amount >= 0) {
+                    r = rgb.r + (255 - rgb.r) * amount;
+                    g = rgb.g + (255 - rgb.g) * amount;
+                    b = rgb.b + (255 - rgb.b) * amount;
+                } else {
+                    const k = 1 + amount; // amount negative => k in [0,1)
+                    r = rgb.r * k;
+                    g = rgb.g * k;
+                    b = rgb.b * k;
+                }
+                return `rgb(${clamp(r)}, ${clamp(g)}, ${clamp(b)})`;
+            }
+
+            // Fill a rounded rectangle using the CURRENT fillStyle (set fillStyle/gradient first).
+            // Uses ctx.roundRect when available, falls back to a plain fillRect otherwise.
+            // r is clamped to at most half the smaller dimension so small shapes stay sane.
+            roundedRect(x, y, w, h, r) {
+                const ctx = this.ctx;
+                if (typeof ctx.roundRect === 'function') {
+                    const rad = Math.max(0, Math.min(r, w / 2, h / 2));
+                    ctx.beginPath();
+                    ctx.roundRect(x, y, w, h, rad);
+                    ctx.fill();
+                } else {
+                    ctx.fillRect(x, y, w, h);
+                }
+            }
+
+            // Draw a single platform as shaded terrain: vertical gradient body (lighter top ->
+            // darker bottom), a lighter grass/edge highlight strip across the top, and a darker
+            // 2px bevel line along the bottom. All shades are derived from p.color so the
+            // existing palette is preserved. Visual-only; does not affect collision/geometry.
+            drawPlatform(p) {
+                const ctx = this.ctx;
+                const rgb = this.parseHexColor(p.color);
+
+                // Fallback for any non-hex platform color: keep the original flat fill.
+                if (!rgb) {
+                    ctx.fillStyle = p.color;
+                    ctx.fillRect(p.x, p.y, p.width, p.height);
+                    return;
+                }
+
+                // Modest corner radius, clamped so small platforms don't over-round.
+                const r = Math.max(0, Math.min(5, p.width / 2, p.height / 2));
+
+                // Vertical gradient body filled into a rounded path (lighter top -> darker bottom).
+                const grad = ctx.createLinearGradient(p.x, p.y, p.x, p.y + p.height);
+                grad.addColorStop(0, this.shadeColor(rgb, 0.18));
+                grad.addColorStop(1, this.shadeColor(rgb, -0.28));
+                ctx.fillStyle = grad;
+                this.roundedRect(p.x, p.y, p.width, p.height, r);
+
+                // Clip subsequent strips to the rounded body so the top highlight and bottom
+                // bevel honor the corners (no overhang past the rounded edges).
+                ctx.save();
+                if (typeof ctx.roundRect === 'function') {
+                    ctx.beginPath();
+                    ctx.roundRect(p.x, p.y, p.width, p.height, r);
+                    ctx.clip();
+                }
+
+                // Grass/edge highlight strip along the top (scaled to platform height, capped).
+                const stripH = Math.max(2, Math.min(6, Math.round(p.height * 0.18)));
+                ctx.fillStyle = this.shadeColor(rgb, 0.42);
+                ctx.fillRect(p.x, p.y, p.width, stripH);
+
+                // Faux-bevel: 2px darker line along the bottom edge.
+                const bevelH = Math.min(2, p.height);
+                ctx.fillStyle = this.shadeColor(rgb, -0.5);
+                ctx.fillRect(p.x, p.y + p.height - bevelH, p.width, bevelH);
+
+                ctx.restore();
+            }
+
+            // Low-alpha black contact shadow ellipse at an entity's feet to ground it.
+            // Centered on (x + width/2) at the entity's bottom (y + height); width ~entity width.
+            // Visual-only; does not affect collision/geometry. Restores ctx state on exit.
+            drawContactShadow(ent) {
+                const ctx = this.ctx;
+                const cx = ent.x + ent.width / 2;
+                const cy = ent.y + ent.height;
+                const rx = ent.width * 0.5;
+                const ry = Math.max(3, ent.height * 0.12);
+                ctx.save();
+                ctx.globalAlpha = 0.22;
+                ctx.fillStyle = '#000';
+                ctx.beginPath();
+                ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+
             render() {
                 this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
+                // Parallax background (screen space, before the camera translate)
+                this.drawBackground();
+
                 // Save context for camera
                 this.ctx.save();
-                this.ctx.translate(-this.camera.x, -this.camera.y);
+                // VISUAL ONLY: offset only the world translate by the shake vector. Never
+                // write it into this.camera (updateCamera overwrites + clamps that each frame);
+                // drawBackground above still reads the unshaken camera so the sky stays steady.
+                this.ctx.translate(-(this.camera.x - this.shake.x), -(this.camera.y - this.shake.y));
 
-                // Draw platforms
+                // Draw platforms (shaded terrain via drawPlatform)
                 this.platforms.forEach(platform => {
-                    this.ctx.fillStyle = platform.color;
-                    this.ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
+                    this.drawPlatform(platform);
                 });
 
                 // Draw objects
                 this.objects.forEach(obj => {
                     if (obj.type === 'coin' && obj.collected) return;
-                    
+
                     this.ctx.fillStyle = obj.color;
-                    this.ctx.fillRect(obj.x, obj.y, obj.width, obj.height);
-                    
+                    // Round the coin and goal bodies; keep other objects (signs, phase walls) square.
+                    if (obj.type === 'coin') {
+                        this.roundedRect(obj.x, obj.y, obj.width, obj.height, obj.width / 2);
+                    } else if (obj.type === 'goal') {
+                        this.roundedRect(obj.x, obj.y, obj.width, obj.height, 6);
+                    } else {
+                        this.ctx.fillRect(obj.x, obj.y, obj.width, obj.height);
+                    }
+
                     if (obj.type === 'goal') {
                         // Add sparkle effect
                         this.ctx.fillStyle = '#fff';
@@ -1564,9 +1877,12 @@
                 // Draw enemies
                 this.enemies.forEach(enemy => {
                     if (enemy.alive) {
+                        // Contact shadow grounds the enemy (drawn under the body)
+                        this.drawContactShadow(enemy);
+
                         this.ctx.fillStyle = enemy.color;
-                        this.ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
-                        
+                        this.roundedRect(enemy.x, enemy.y, enemy.width, enemy.height, 5);
+
                         // Eyes
                         this.ctx.fillStyle = '#fff';
                         this.ctx.fillRect(enemy.x + 5, enemy.y + 5, 4, 4);
@@ -1611,21 +1927,50 @@
                     this.ctx.globalAlpha = 1;
                 }
 
+                // Draw generic particles (dust/bursts). These carry WORLD coordinates, so they
+                // must be drawn INSIDE the camera translate, before ctx.restore() below.
+                if (this.particles && this.particles.length > 0) {
+                    this.particles.forEach(p => {
+                        this.ctx.globalAlpha = Math.max(0, p.life / Math.max(1, p.maxLife));
+                        this.ctx.fillStyle = p.color;
+                        this.ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+                    });
+                    this.ctx.globalAlpha = 1;
+                }
+
                 // Draw characters
                 this.characters.forEach((char, index) => {
                     if (index === this.currentCharacter) {
+                        // Contact shadow grounds the active character (under the body). Only
+                        // drawn while grounded so flying/jumping doesn't leave a floating shadow.
+                        if (char.onGround) {
+                            this.drawContactShadow(char);
+                        }
+
+                        // Glow makes the controlled character obvious. Short shadowBlur in the
+                        // character's own color; reset immediately after so nothing else inherits it.
+                        this.ctx.save();
+                        this.ctx.shadowColor = char.color;
+                        this.ctx.shadowBlur = 16;
                         this.drawCharacter(char, index);
+                        this.ctx.restore();
                     }
                 });
+
+                // Defensively clear any lingering glow/blur/alpha so the flight-fuel bar below
+                // (still inside this save/restore) renders clean.
+                this.ctx.shadowBlur = 0;
+                this.ctx.shadowColor = 'transparent';
+                this.ctx.globalAlpha = 1;
 
                 // Draw flight fuel bar for Mister Underpants
                 if (this.currentCharacter === 0) {
                     const char = this.characters[0];
                     const fuelPercent = char.flightFuel / char.maxFlightFuel;
                     this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-                    this.ctx.fillRect(char.x, char.y - 15, char.width, 5);
+                    this.roundedRect(char.x, char.y - 15, char.width, 5, 2.5);
                     this.ctx.fillStyle = fuelPercent > 0.3 ? '#22c55e' : '#ef4444';
-                    this.ctx.fillRect(char.x, char.y - 15, char.width * fuelPercent, 5);
+                    this.roundedRect(char.x, char.y - 15, char.width * fuelPercent, 5, 2.5);
                 }
 
                 this.ctx.restore();
