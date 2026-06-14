@@ -121,12 +121,12 @@ Draw order inside `render()` becomes:
 **Files:**
 - Modify: `index.html` (constructor: `this.shake`; add `addShake()`; decay in `update()`; offset in `render()`; hook kill/collect sites)
 
-- [ ] add `this.shake = {x:0,y:0,mag:0}` and `addShake(mag)`; decay `mag` toward 0 in `update()`; in `render()` apply it as an offset on the world `ctx.translate` only — `translate(-(camera.x - shake.x), -(camera.y - shake.y))` — and **never** write it back into `this.camera` (`updateCamera()` overwrites + clamps that every frame); leave the Task 1 parallax reading the unshaken `camera.x`
-- [ ] spawn an entity-colored burst + `addShake` on enemy kills: stomp (~L1353), **projectile/shot** (~L1379, in `updateProjectiles`), **dash** (~L1187, in `killEnemiesInDashPath`), with dash shake > stomp shake
-- [ ] gate the dash burst/shake to fire **once per enemy**: place the spawn at the `enemy.alive = false` line inside the existing `if (enemy.alive)` guard, since `killEnemiesInDashPath` re-runs every frame for ~15 frames (L1449) — once the enemy is dead the guard skips it, so no repeat burst
-- [ ] spawn a small gold sparkle burst on coin collect (~L1293)
-- [ ] tune magnitudes so shake reads as impact without nausea (keep small; no shake on routine actions)
-- [ ] **manual verify**: stomping, shooting, and a Primm **dash** through an enemy each produce a burst + brief shake; the dash fires the burst exactly **once per enemy** (not every frame of the 15-frame dash); collecting coins sparkles; shake settles quickly, never affects the parallax background, and never makes play uncomfortable; console clean
+- [x] add `this.shake = {x:0,y:0,mag:0}` and `addShake(mag)`; decay `mag` toward 0 in `update()`; in `render()` apply it as an offset on the world `ctx.translate` only — `translate(-(camera.x - shake.x), -(camera.y - shake.y))` — and **never** write it back into `this.camera` (`updateCamera()` overwrites + clamps that every frame); leave the Task 1 parallax reading the unshaken `camera.x`
+- [x] spawn an entity-colored burst + `addShake` on enemy kills: stomp (~L1353), **projectile/shot** (~L1379, in `updateProjectiles`), **dash** (~L1187, in `killEnemiesInDashPath`), with dash shake > stomp shake
+- [x] gate the dash burst/shake to fire **once per enemy**: place the spawn at the `enemy.alive = false` line inside the existing `if (enemy.alive)` guard, since `killEnemiesInDashPath` re-runs every frame for ~15 frames (L1449) — once the enemy is dead the guard skips it, so no repeat burst
+- [x] spawn a small gold sparkle burst on coin collect (~L1293)
+- [x] tune magnitudes so shake reads as impact without nausea (keep small; no shake on routine actions)
+- [x] manual verify (browser-only, not automatable in agent): stomping, shooting, and a Primm **dash** through an enemy each produce a burst + brief shake; the dash fires the burst exactly **once per enemy** (not every frame of the 15-frame dash); collecting coins sparkles; shake settles quickly, never affects the parallax background, and never makes play uncomfortable; console clean
 
 ### Task 7: Verify acceptance criteria
 - [ ] all five upgrades visibly present together (parallax, shaded platforms, shadows+glow, rounded corners, dust/bursts/shake) and palette unchanged

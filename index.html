@@ -311,6 +311,7 @@
                 this.objects = [];
                 this.projectiles = [];
                 this.particles = [];
+                this.shake = { x: 0, y: 0, mag: 0 };
                 this.levelBounds = { minX: 0, maxX: 5000, minY: 0, maxY: 1200 };
                 this.gameEnded = false;
                 
@@ -1186,6 +1187,20 @@
                         // Kill enemies within dash range
                         if (dx < 40 && dy < 40) {
                             enemy.alive = false;
+                            // VISUAL ONLY: impact burst + largest screen shake. Placed here
+                            // (inside the `if (enemy.alive)` guard, right at the kill) so it
+                            // fires exactly once per enemy — this fn re-runs each dash frame,
+                            // but a dead enemy is skipped by the guard on later frames.
+                            this.spawnParticles(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, {
+                                count: 14,
+                                color: [enemy.color || '#ff4444', '#ffffff'],
+                                speed: 4,
+                                size: 3.5,
+                                life: 28,
+                                gravity: 0.2,
+                                spread: Math.PI * 2
+                            });
+                            this.addShake(11);
                         }
                     }
                 });
@@ -1237,6 +1252,7 @@
                 this.updateWindParticles();
                 this.updateBladeEffects();
                 this.updateParticles();
+                this.updateShake();
                 this.updateCamera();
                 this.updateCooldowns();
 
@@ -1307,6 +1323,16 @@
                         
                         if (obj.type === 'coin' && !obj.collected) {
                             obj.collected = true;
+                            // VISUAL ONLY: gold sparkle burst at the coin center (no shake).
+                            this.spawnParticles(obj.x + obj.width / 2, obj.y + obj.height / 2, {
+                                count: 8,
+                                color: ['#ffd700', '#fff3a0'],
+                                speed: 2.2,
+                                size: 2.5,
+                                life: 22,
+                                gravity: 0.08,
+                                spread: Math.PI * 2
+                            });
                             // Could add score here
                         } else if (obj.type === 'windPlatform') {
                             // Wind platforms act like solid platforms you can stand on
@@ -1381,6 +1407,17 @@
                             // Player stomps enemy
                             enemy.alive = false;
                             char.vy = -8; // Bounce up after stomping
+                            // VISUAL ONLY: impact burst + small screen shake.
+                            this.spawnParticles(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, {
+                                count: 10,
+                                color: [enemy.color || '#ff4444', '#ffffff'],
+                                speed: 3,
+                                size: 3,
+                                life: 24,
+                                gravity: 0.2,
+                                spread: Math.PI * 2
+                            });
+                            this.addShake(5);
                         } else {
                             // Player dies from touching enemy from side/below
                             if (!loseHeart()) {
@@ -1407,6 +1444,17 @@
                             proj.y + proj.height > enemy.y) {
                             enemy.alive = false;
                             proj.hit = true;
+                            // VISUAL ONLY: impact burst + medium screen shake.
+                            this.spawnParticles(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, {
+                                count: 12,
+                                color: [enemy.color || '#ff4444', '#ffffff'],
+                                speed: 3.5,
+                                size: 3,
+                                life: 26,
+                                gravity: 0.2,
+                                spread: Math.PI * 2
+                            });
+                            this.addShake(8);
                         }
                     });
 
@@ -1487,6 +1535,21 @@
                     p.life--;
                     return p.life > 0;
                 });
+            }
+
+            // VISUAL ONLY: raise the screen-shake magnitude (impact feedback). Keeps the
+            // strongest pending shake so overlapping impacts don't cancel out.
+            addShake(mag) {
+                this.shake.mag = Math.max(this.shake.mag, mag);
+            }
+
+            // VISUAL ONLY: decay the shake toward 0 and recompute the per-frame offset.
+            // Math.random is fine here (runtime-only jitter, never persisted).
+            updateShake() {
+                this.shake.mag *= 0.85;
+                if (this.shake.mag < 0.3) this.shake.mag = 0;
+                this.shake.x = (Math.random() - 0.5) * 2 * this.shake.mag;
+                this.shake.y = (Math.random() - 0.5) * 2 * this.shake.mag;
             }
 
             updateBladeEffects() {
@@ -1782,7 +1845,10 @@
 
                 // Save context for camera
                 this.ctx.save();
-                this.ctx.translate(-this.camera.x, -this.camera.y);
+                // VISUAL ONLY: offset only the world translate by the shake vector. Never
+                // write it into this.camera (updateCamera overwrites + clamps that each frame);
+                // drawBackground above still reads the unshaken camera so the sky stays steady.
+                this.ctx.translate(-(this.camera.x - this.shake.x), -(this.camera.y - this.shake.y));
 
                 // Draw platforms (shaded terrain via drawPlatform)
                 this.platforms.forEach(platform => {
