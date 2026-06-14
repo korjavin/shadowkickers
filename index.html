@@ -310,6 +310,7 @@
                 this.platforms = [];
                 this.objects = [];
                 this.projectiles = [];
+                this.particles = [];
                 this.levelBounds = { minX: 0, maxX: 5000, minY: 0, maxY: 1200 };
                 this.gameEnded = false;
                 
@@ -1235,6 +1236,7 @@
                 this.updateObjects();
                 this.updateWindParticles();
                 this.updateBladeEffects();
+                this.updateParticles();
                 this.updateCamera();
                 this.updateCooldowns();
 
@@ -1261,9 +1263,23 @@
                         
                         // Top collision (landing on platform)
                         if (char.vy > 0 && char.y < platform.y) {
+                            // VISUAL ONLY: read impact velocity before it is zeroed to kick up
+                            // landing dust. Gentle steps (small vy) must not puff.
+                            const impactVy = char.vy;
                             char.y = platform.y - char.height;
                             char.vy = 0;
                             char.onGround = true;
+                            if (impactVy > 8) {
+                                this.spawnParticles(char.x + char.width / 2, char.y + char.height, {
+                                    count: 6,
+                                    color: ['#c2a878', '#d8c4a0'],
+                                    speed: 2.4,
+                                    size: 3,
+                                    life: 22,
+                                    gravity: 0.18,
+                                    spread: Math.PI * 1.1
+                                });
+                            }
                         }
                         // Bottom collision
                         else if (char.vy < 0 && char.y > platform.y) {
@@ -1295,9 +1311,22 @@
                         } else if (obj.type === 'windPlatform') {
                             // Wind platforms act like solid platforms you can stand on
                             if (char.vy > 0 && char.y < obj.y) {
+                                // VISUAL ONLY: read impact velocity before zeroing for landing dust.
+                                const impactVy = char.vy;
                                 char.y = obj.y - char.height;
                                 char.vy = 0;
                                 char.onGround = true;
+                                if (impactVy > 8) {
+                                    this.spawnParticles(char.x + char.width / 2, char.y + char.height, {
+                                        count: 6,
+                                        color: ['#c2a878', '#d8c4a0'],
+                                        speed: 2.4,
+                                        size: 3,
+                                        life: 22,
+                                        gravity: 0.18,
+                                        spread: Math.PI * 1.1
+                                    });
+                                }
                             }
                         } else if (obj.type === 'phaseWall' && 
                                    !(this.currentCharacter === 3 && char.phasing)) {
@@ -1408,6 +1437,55 @@
                     particle.alpha = particle.life / particle.maxLife;
                     
                     return particle.life > 0;
+                });
+            }
+
+            // Generic particle spawner. Each particle: {x,y,vx,vy,life,maxLife,size,color,gravity}
+            // in WORLD coordinates. opts: { count, color(s), speed, size, life, gravity, spread }.
+            // A hard cap on the live particle count bounds per-frame cost: once the array is at the
+            // cap, new spawns are ignored rather than allowed to grow without bound.
+            spawnParticles(x, y, opts) {
+                opts = opts || {};
+                const CAP = 200;
+                const count = opts.count != null ? opts.count : 6;
+                const colors = Array.isArray(opts.color)
+                    ? opts.color
+                    : [opts.color || '#c2a878'];
+                const speed = opts.speed != null ? opts.speed : 2;
+                const size = opts.size != null ? opts.size : 3;
+                const life = opts.life != null ? opts.life : 24;
+                const gravity = opts.gravity != null ? opts.gravity : 0.15;
+                const spread = opts.spread != null ? opts.spread : Math.PI; // upward fan by default
+
+                for (let i = 0; i < count; i++) {
+                    if (this.particles.length >= CAP) break; // hard cap reached, drop extras
+                    // Angle fans outward and upward: -PI/2 is straight up.
+                    const angle = -Math.PI / 2 + (Math.random() - 0.5) * spread;
+                    const spd = speed * (0.4 + Math.random() * 0.8);
+                    const ml = life * (0.7 + Math.random() * 0.6);
+                    this.particles.push({
+                        x: x,
+                        y: y,
+                        vx: Math.cos(angle) * spd,
+                        vy: Math.sin(angle) * spd,
+                        life: ml,
+                        maxLife: ml,
+                        size: size * (0.7 + Math.random() * 0.6),
+                        color: colors[(Math.random() * colors.length) | 0],
+                        gravity: gravity
+                    });
+                }
+            }
+
+            updateParticles() {
+                if (!this.particles || this.particles.length === 0) return;
+
+                this.particles = this.particles.filter(p => {
+                    p.vy += p.gravity || 0;
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.life--;
+                    return p.life > 0;
                 });
             }
 
@@ -1792,6 +1870,17 @@
                         // Draw blade tip
                         this.ctx.fillStyle = '#ffff00'; // Yellow spark at tip
                         this.ctx.fillRect(blade.x + blade.width - 2, blade.y + 1, 2, 1);
+                    });
+                    this.ctx.globalAlpha = 1;
+                }
+
+                // Draw generic particles (dust/bursts). These carry WORLD coordinates, so they
+                // must be drawn INSIDE the camera translate, before ctx.restore() below.
+                if (this.particles && this.particles.length > 0) {
+                    this.particles.forEach(p => {
+                        this.ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
+                        this.ctx.fillStyle = p.color;
+                        this.ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
                     });
                     this.ctx.globalAlpha = 1;
                 }

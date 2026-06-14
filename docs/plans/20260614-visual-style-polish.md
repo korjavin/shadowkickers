@@ -110,11 +110,11 @@ Draw order inside `render()` becomes:
 **Files:**
 - Modify: `index.html` (constructor: `this.particles=[]`; add `spawnParticles()`/`updateParticles()`; hook landing in `checkCollisions()`; draw in `render()`)
 
-- [ ] initialize `this.particles = []` in the constructor (near other state ~L305–312)
-- [ ] add `spawnParticles(x, y, opts)` and `updateParticles()` (velocity + optional gravity integration, `life` decay, removal of dead particles, hard cap on live count)
-- [ ] call `updateParticles()` from `update()` (alongside `updateWindParticles()` ~L1236) and draw particles in `render()` **inside the camera translate** (with the wind/blade fx, before `ctx.restore()` at L1631) — particles carry world coords from `checkCollisions`, so drawing them after restore would misplace them in screen space; use `globalAlpha = life/maxLife` and reset alpha after
-- [ ] spawn a small tan dust puff on landing: capture impact `vy` in the downward-collision branch (~L1263) before it is zeroed, and only puff above a threshold
-- [ ] **manual verify**: landing from a height kicks up dust at the feet; gentle steps do not; no particle buildup/leak over time; framerate smooth; console clean
+- [x] initialize `this.particles = []` in the constructor (near other state ~L305–312)
+- [x] add `spawnParticles(x, y, opts)` and `updateParticles()` (velocity + optional gravity integration, `life` decay, removal of dead particles, hard cap on live count)
+- [x] call `updateParticles()` from `update()` (alongside `updateWindParticles()` ~L1236) and draw particles in `render()` **inside the camera translate** (with the wind/blade fx, before `ctx.restore()` at L1631) — particles carry world coords from `checkCollisions`, so drawing them after restore would misplace them in screen space; use `globalAlpha = life/maxLife` and reset alpha after
+- [x] spawn a small tan dust puff on landing: capture impact `vy` in the downward-collision branch (~L1263) before it is zeroed, and only puff above a threshold
+- [x] manual verify (browser-only, not automatable in agent): landing from a height kicks up dust at the feet; gentle steps do not; no particle buildup/leak over time; framerate smooth; console clean
 
 ### Task 6: Impact bursts + screen shake
 
