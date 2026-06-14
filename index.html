@@ -1616,6 +1616,21 @@
                 return `rgb(${clamp(r)}, ${clamp(g)}, ${clamp(b)})`;
             }
 
+            // Fill a rounded rectangle using the CURRENT fillStyle (set fillStyle/gradient first).
+            // Uses ctx.roundRect when available, falls back to a plain fillRect otherwise.
+            // r is clamped to at most half the smaller dimension so small shapes stay sane.
+            roundedRect(x, y, w, h, r) {
+                const ctx = this.ctx;
+                if (typeof ctx.roundRect === 'function') {
+                    const rad = Math.max(0, Math.min(r, w / 2, h / 2));
+                    ctx.beginPath();
+                    ctx.roundRect(x, y, w, h, rad);
+                    ctx.fill();
+                } else {
+                    ctx.fillRect(x, y, w, h);
+                }
+            }
+
             // Draw a single platform as shaded terrain: vertical gradient body (lighter top ->
             // darker bottom), a lighter grass/edge highlight strip across the top, and a darker
             // 2px bevel line along the bottom. All shades are derived from p.color so the
@@ -1631,12 +1646,24 @@
                     return;
                 }
 
-                // Vertical gradient body: top a touch lighter, bottom noticeably darker.
+                // Modest corner radius, clamped so small platforms don't over-round.
+                const r = Math.max(0, Math.min(5, p.width / 2, p.height / 2));
+
+                // Vertical gradient body filled into a rounded path (lighter top -> darker bottom).
                 const grad = ctx.createLinearGradient(p.x, p.y, p.x, p.y + p.height);
                 grad.addColorStop(0, this.shadeColor(rgb, 0.18));
                 grad.addColorStop(1, this.shadeColor(rgb, -0.28));
                 ctx.fillStyle = grad;
-                ctx.fillRect(p.x, p.y, p.width, p.height);
+                this.roundedRect(p.x, p.y, p.width, p.height, r);
+
+                // Clip subsequent strips to the rounded body so the top highlight and bottom
+                // bevel honor the corners (no overhang past the rounded edges).
+                ctx.save();
+                if (typeof ctx.roundRect === 'function') {
+                    ctx.beginPath();
+                    ctx.roundRect(p.x, p.y, p.width, p.height, r);
+                    ctx.clip();
+                }
 
                 // Grass/edge highlight strip along the top (scaled to platform height, capped).
                 const stripH = Math.max(2, Math.min(6, Math.round(p.height * 0.18)));
@@ -1647,6 +1674,8 @@
                 const bevelH = Math.min(2, p.height);
                 ctx.fillStyle = this.shadeColor(rgb, -0.5);
                 ctx.fillRect(p.x, p.y + p.height - bevelH, p.width, bevelH);
+
+                ctx.restore();
             }
 
             // Low-alpha black contact shadow ellipse at an entity's feet to ground it.
@@ -1685,10 +1714,17 @@
                 // Draw objects
                 this.objects.forEach(obj => {
                     if (obj.type === 'coin' && obj.collected) return;
-                    
+
                     this.ctx.fillStyle = obj.color;
-                    this.ctx.fillRect(obj.x, obj.y, obj.width, obj.height);
-                    
+                    // Round the coin and goal bodies; keep other objects (signs, phase walls) square.
+                    if (obj.type === 'coin') {
+                        this.roundedRect(obj.x, obj.y, obj.width, obj.height, obj.width / 2);
+                    } else if (obj.type === 'goal') {
+                        this.roundedRect(obj.x, obj.y, obj.width, obj.height, 6);
+                    } else {
+                        this.ctx.fillRect(obj.x, obj.y, obj.width, obj.height);
+                    }
+
                     if (obj.type === 'goal') {
                         // Add sparkle effect
                         this.ctx.fillStyle = '#fff';
@@ -1714,8 +1750,8 @@
                         this.drawContactShadow(enemy);
 
                         this.ctx.fillStyle = enemy.color;
-                        this.ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
-                        
+                        this.roundedRect(enemy.x, enemy.y, enemy.width, enemy.height, 5);
+
                         // Eyes
                         this.ctx.fillStyle = '#fff';
                         this.ctx.fillRect(enemy.x + 5, enemy.y + 5, 4, 4);
@@ -1787,9 +1823,9 @@
                     const char = this.characters[0];
                     const fuelPercent = char.flightFuel / char.maxFlightFuel;
                     this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-                    this.ctx.fillRect(char.x, char.y - 15, char.width, 5);
+                    this.roundedRect(char.x, char.y - 15, char.width, 5, 2.5);
                     this.ctx.fillStyle = fuelPercent > 0.3 ? '#22c55e' : '#ef4444';
-                    this.ctx.fillRect(char.x, char.y - 15, char.width * fuelPercent, 5);
+                    this.roundedRect(char.x, char.y - 15, char.width * fuelPercent, 5, 2.5);
                 }
 
                 this.ctx.restore();

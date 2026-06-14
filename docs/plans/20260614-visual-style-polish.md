@@ -98,12 +98,12 @@ Draw order inside `render()` becomes:
 **Files:**
 - Modify: `index.html` (add `roundedRect()` helper; apply at chosen draw sites)
 
-- [ ] add `roundedRect(x,y,w,h,r)` helper that uses `ctx.roundRect` when available and falls back to `fillRect`
-- [ ] apply rounding to platforms (in `drawPlatform`) and enemies — note this converts `drawPlatform`'s body from `fillRect` to a path-based fill (`beginPath` → `roundRect` → `fill`) so the Task 2 gradient fills the rounded path; the grass-top strip and bottom bevel must also respect the rounded corners (clip or inset) so they don't overhang
-- [ ] apply rounding to coins and the goal object
-- [ ] apply rounding to the **flight-fuel bar** (L1621–1629) — the only canvas-drawn HUD; the hearts display is a DOM `#heartsDisplay` div (L110–111) already styled `rounded` and is **not** drawn on canvas, so leave it alone
-- [ ] leave the many small sub-rects inside `drawCharacter` as square (rounding them is noise for the cost)
-- [ ] **manual verify**: rounded shapes render with no clipping artifacts or gaps; the Task 2 gradient + grass strip + bevel still align inside rounded platforms (no overhang past corners); console clean
+- [x] add `roundedRect(x,y,w,h,r)` helper that uses `ctx.roundRect` when available and falls back to `fillRect`
+- [x] apply rounding to platforms (in `drawPlatform`) and enemies — note this converts `drawPlatform`'s body from `fillRect` to a path-based fill (`beginPath` → `roundRect` → `fill`) so the Task 2 gradient fills the rounded path; the grass-top strip and bottom bevel must also respect the rounded corners (clip or inset) so they don't overhang
+- [x] apply rounding to coins and the goal object
+- [x] apply rounding to the **flight-fuel bar** (L1621–1629) — the only canvas-drawn HUD; the hearts display is a DOM `#heartsDisplay` div (L110–111) already styled `rounded` and is **not** drawn on canvas, so leave it alone
+- [x] leave the many small sub-rects inside `drawCharacter` as square (rounding them is noise for the cost)
+- [x] manual verify (browser-only, not automatable in agent): rounded shapes render with no clipping artifacts or gaps; the Task 2 gradient + grass strip + bevel still align inside rounded platforms (no overhang past corners); console clean
 
 ### Task 5: Particle system + landing dust
 
