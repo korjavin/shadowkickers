@@ -1191,16 +1191,7 @@
                             // (inside the `if (enemy.alive)` guard, right at the kill) so it
                             // fires exactly once per enemy — this fn re-runs each dash frame,
                             // but a dead enemy is skipped by the guard on later frames.
-                            this.spawnParticles(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, {
-                                count: 14,
-                                color: [enemy.color || '#ff4444', '#ffffff'],
-                                speed: 4,
-                                size: 3.5,
-                                life: 28,
-                                gravity: 0.2,
-                                spread: Math.PI * 2
-                            });
-                            this.addShake(11);
+                            this.spawnEnemyKill(enemy, { count: 14, speed: 4, size: 3.5, life: 28, shake: 11 });
                         }
                     }
                 });
@@ -1285,17 +1276,7 @@
                             char.y = platform.y - char.height;
                             char.vy = 0;
                             char.onGround = true;
-                            if (impactVy > 8) {
-                                this.spawnParticles(char.x + char.width / 2, char.y + char.height, {
-                                    count: 6,
-                                    color: ['#c2a878', '#d8c4a0'],
-                                    speed: 2.4,
-                                    size: 3,
-                                    life: 22,
-                                    gravity: 0.18,
-                                    spread: Math.PI * 1.1
-                                });
-                            }
+                            this.spawnLandingDust(char, impactVy);
                         }
                         // Bottom collision
                         else if (char.vy < 0 && char.y > platform.y) {
@@ -1342,17 +1323,7 @@
                                 char.y = obj.y - char.height;
                                 char.vy = 0;
                                 char.onGround = true;
-                                if (impactVy > 8) {
-                                    this.spawnParticles(char.x + char.width / 2, char.y + char.height, {
-                                        count: 6,
-                                        color: ['#c2a878', '#d8c4a0'],
-                                        speed: 2.4,
-                                        size: 3,
-                                        life: 22,
-                                        gravity: 0.18,
-                                        spread: Math.PI * 1.1
-                                    });
-                                }
+                                this.spawnLandingDust(char, impactVy);
                             }
                         } else if (obj.type === 'phaseWall' && 
                                    !(this.currentCharacter === 3 && char.phasing)) {
@@ -1408,16 +1379,7 @@
                             enemy.alive = false;
                             char.vy = -8; // Bounce up after stomping
                             // VISUAL ONLY: impact burst + small screen shake.
-                            this.spawnParticles(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, {
-                                count: 10,
-                                color: [enemy.color || '#ff4444', '#ffffff'],
-                                speed: 3,
-                                size: 3,
-                                life: 24,
-                                gravity: 0.2,
-                                spread: Math.PI * 2
-                            });
-                            this.addShake(5);
+                            this.spawnEnemyKill(enemy, { count: 10, speed: 3, size: 3, life: 24, shake: 5 });
                         } else {
                             // Player dies from touching enemy from side/below
                             if (!loseHeart()) {
@@ -1445,16 +1407,7 @@
                             enemy.alive = false;
                             proj.hit = true;
                             // VISUAL ONLY: impact burst + medium screen shake.
-                            this.spawnParticles(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, {
-                                count: 12,
-                                color: [enemy.color || '#ff4444', '#ffffff'],
-                                speed: 3.5,
-                                size: 3,
-                                life: 26,
-                                gravity: 0.2,
-                                spread: Math.PI * 2
-                            });
-                            this.addShake(8);
+                            this.spawnEnemyKill(enemy, { count: 12, speed: 3.5, size: 3, life: 26, shake: 8 });
                         }
                     });
 
@@ -1535,6 +1488,38 @@
                     p.life--;
                     return p.life > 0;
                 });
+            }
+
+            // VISUAL ONLY: kick up landing dust at a character's feet. Only puffs on a hard
+            // landing (impactVy past the threshold); gentle steps stay clean. Shared by the
+            // platform- and windPlatform-landing branches so the two stay identical.
+            spawnLandingDust(char, impactVy) {
+                if (impactVy <= 8) return;
+                this.spawnParticles(char.x + char.width / 2, char.y + char.height, {
+                    count: 6,
+                    color: ['#c2a878', '#d8c4a0'],
+                    speed: 2.4,
+                    size: 3,
+                    life: 22,
+                    gravity: 0.18,
+                    spread: Math.PI * 1.1
+                });
+            }
+
+            // VISUAL ONLY: entity-colored impact burst + paired screen shake on an enemy kill.
+            // Shared by the dash, stomp, and projectile kill sites; only count/speed/size/life
+            // and the shake magnitude differ (stomp < projectile < dash).
+            spawnEnemyKill(enemy, opts) {
+                this.spawnParticles(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, {
+                    count: opts.count,
+                    color: [enemy.color || '#ff4444', '#ffffff'],
+                    speed: opts.speed,
+                    size: opts.size,
+                    life: opts.life,
+                    gravity: 0.2,
+                    spread: Math.PI * 2
+                });
+                this.addShake(opts.shake);
             }
 
             // VISUAL ONLY: raise the screen-shake magnitude (impact feedback). Keeps the
@@ -1944,7 +1929,7 @@
                 // must be drawn INSIDE the camera translate, before ctx.restore() below.
                 if (this.particles && this.particles.length > 0) {
                     this.particles.forEach(p => {
-                        this.ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
+                        this.ctx.globalAlpha = Math.max(0, p.life / Math.max(1, p.maxLife));
                         this.ctx.fillStyle = p.color;
                         this.ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
                     });
@@ -1954,8 +1939,11 @@
                 // Draw characters
                 this.characters.forEach((char, index) => {
                     if (index === this.currentCharacter) {
-                        // Contact shadow grounds the active character (under the body)
-                        this.drawContactShadow(char);
+                        // Contact shadow grounds the active character (under the body). Only
+                        // drawn while grounded so flying/jumping doesn't leave a floating shadow.
+                        if (char.onGround) {
+                            this.drawContactShadow(char);
+                        }
 
                         // Glow makes the controlled character obvious. Short shadowBlur in the
                         // character's own color; reset immediately after so nothing else inherits it.

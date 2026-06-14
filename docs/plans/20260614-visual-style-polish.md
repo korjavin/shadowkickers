@@ -44,7 +44,7 @@ Benefits: dramatically more depth and "game feel" for a small, self-contained ch
 All work lives in the rendering layer of the single `Game` class. New helper methods are added and called from `render()` / `update()`; a few existing hook points in `checkCollisions()` and the kill/collect sites get one-line calls to spawn particles or shake. No data model, level, or physics change. New per-frame state added to the constructor: `this.particles = []` and `this.shake = {x:0, y:0, mag:0}`.
 
 Draw order inside `render()` becomes:
-`background (parallax) → [camera translate] → platforms → objects → enemies → projectiles → contact shadows → particles → wind/blade fx → active character (with glow)`.
+`background (parallax) → [camera translate] → platforms → objects → enemies (each w/ contact shadow) → projectiles → wind particles → blade fx → generic particles → active character (w/ contact shadow + glow) → fuel bar`. There is no discrete contact-shadow pass — enemy shadows are drawn inline in the enemy loop and the active-character shadow inline in the character loop; generic particles are drawn after the wind/blade fx, not before.
 
 ## Technical Details
 - **Parallax**: drawn in screen space (before the camera translate) so layers can move slower than the world. Each layer's on-screen x = `-(camera.x * factor) % tileWidth`, repeated across the viewport. Factors ~0.2 (far hills), ~0.4 (clouds), ~0.6 (near hills/bushes). Sky gradient drawn on-canvas via `createLinearGradient` so it is self-contained (CSS gradient remains as a harmless fallback).
