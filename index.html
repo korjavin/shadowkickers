@@ -1441,10 +1441,11 @@
                 });
             }
 
-            // Generic particle spawner. Each particle: {x,y,vx,vy,life,maxLife,size,color,gravity}
-            // in WORLD coordinates. opts: { count, color(s), speed, size, life, gravity, spread }.
-            // A hard cap on the live particle count bounds per-frame cost: once the array is at the
-            // cap, new spawns are ignored rather than allowed to grow without bound.
+            // Generic particle spawner. Each particle: {x,y,vx,vy,life,maxLife,size,color,gravity}.
+            // The given x/y are stored as-is; callers pass world coordinates and the render block
+            // draws them inside the camera translate. opts: { count, color(s), speed, size, life,
+            // gravity, spread }. A hard cap on the live particle count bounds per-frame cost: once
+            // the array is at the cap, new spawns are ignored rather than allowed to grow without bound.
             spawnParticles(x, y, opts) {
                 opts = opts || {};
                 const CAP = 200;
@@ -1494,7 +1495,8 @@
             // landing (impactVy past the threshold); gentle steps stay clean. Shared by the
             // platform- and windPlatform-landing branches so the two stay identical.
             spawnLandingDust(char, impactVy) {
-                if (impactVy <= 8) return;
+                const DUST_VY_THRESHOLD = 8;
+                if (impactVy <= DUST_VY_THRESHOLD) return;
                 this.spawnParticles(char.x + char.width / 2, char.y + char.height, {
                     count: 6,
                     color: ['#c2a878', '#d8c4a0'],
