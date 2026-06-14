@@ -3,7 +3,7 @@ version: "3.8"
 services:
   shadowkickers:
     # The image tag will be replaced by GitHub Actions workflow in the deploy branch
-    image: ghcr.io/korjavin/shadowkickers:latest
+    image: ghcr.io/korjavin/shadowkickers:5071aff8f8e776da62c7c351db0590a78e0f0753
     container_name: shadowkickers
     networks:
       - traefik_network
