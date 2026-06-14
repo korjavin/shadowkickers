@@ -4,103 +4,45 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-"Crime Kickers vs The Bad Guys" is a single-file, browser-based 2D stealth-puzzle platformer game. The core mechanic involves switching between four unique characters with distinct abilities to overcome obstacles and solve environmental puzzles.
+"Crime Kickers vs The Bad Guys" is a single-file, browser-based 2D stealth-puzzle platformer inspired by real-time tactics games (Shadow Tactics, Commandos). The core mechanic is switching between four characters with distinct abilities to solve environmental puzzles that no single character can pass alone.
 
 ## Architecture
 
-### Single File Structure
-- **Main File**: `the_unlikely_squad.html` - Contains the complete game (HTML, CSS, JavaScript)
-- **Audio Assets**: `Verse 1.mp3` and `Verse 1 (2).mp3` - Background music tracks
+### Single-File Game
+The entire game — HTML, CSS, and vanilla JavaScript — lives in **`index.html`** (~1950 lines). All rendering is done on an HTML `<canvas>`. The only external dependency is **Tailwind CSS loaded via CDN** (`https://cdn.tailwindcss.com`) for the UI chrome (menus, character selector, message boxes). There is no build step, bundler, or framework.
 
-### Game Engine Components
-- **Game Class**: Main game engine handling physics, rendering, collision detection
-- **Character System**: Four playable characters with unique abilities
-- **Level System**: Two levels with increasing difficulty
-- **Difficulty Modes**: Easy (3 hearts), Normal, Hardcore (more enemies)
+> Note: the `README.md` and `agent.md` still refer to the original filename `the_unlikely_squad.html`. The file was renamed to `index.html` (so it serves as an nginx index — see Deployment). Treat `index.html` as the source of truth.
 
-## Development Commands
+`agent.md` is the original task spec used to generate the game; it documents the intended Level 1 design and character specs but is not authoritative for current behavior.
 
-This is a static HTML game with no build system. To develop:
+### Core Engine (`Game` class)
+A single `Game` class owns the loop, physics, rendering, and collision. State lives in arrays on the instance: `platforms`, `enemies`, `projectiles`, `objects`, plus particle/effect arrays. Key methods:
 
-1. **Run the game**: Open `the_unlikely_squad.html` in any modern web browser
-2. **Test changes**: Refresh the browser after editing the HTML file
-3. **Debug**: Use browser developer tools console for JavaScript debugging
+- `initCharacters()` — builds the four character objects (each with `speed: 5`, `jumpPower: 15`, ability flags).
+- `initLevel(levelNumber)` — dispatches to `initLevel1()` or `generateLevel2()`.
+- `switchCharacter(index)` — swaps the active character; the new character inherits the old one's position (teleport mechanic). Only one character is active at a time.
+- `useAbility()` — `switch(this.currentCharacter)` to run the active character's primary ability.
+- `update()` → `checkCollisions()`, `updateEnemies()`, `updateProjectiles()`, `updateObjects()`, `updateCamera()`, `updateCooldowns()`, `checkWinCondition()`, `checkFallDeath()`.
+- `render()` / `drawCharacter()` — `drawCharacter` uses `switch(index)` to draw each character's distinct look.
 
-## Character System
+Global physics: `gravity = 0.8`, `friction = 0.8`.
 
-### Core Characters
-1. **Mister Underpants (Red)**: Flight and projectile shooting
-2. **Windman (Blue)**: Wind manipulation for platforms and enemy control
-3. **Teibi (Green)**: Size transformation to access tight spaces
-4. **Primm (Purple)**: Phasing through walls and dash attacks
+### Level System (5 levels: one hand-authored + four procedural)
+There are **5 levels** (`maxLevel = 5`), selectable on the start screen and chained by `nextLevel()` on completion. `initLevel(levelNumber)` dispatches: level 1 → `initLevel1()`, levels 2–5 → `generateLevel(levelNumber)`.
+- **Level 1 — hand-authored** (`initLevel1()`): platforms, enemies, and puzzle objects are pushed in by hardcoded coordinates. Linear left-to-right progression that gates on each character's ability in sequence (Teibi crawl gap → Mister Underpants flight chasm → Primm phase wall → Windman lift platform → goal). Serves as the guided tutorial.
+- **Levels 2–5 — procedurally generated** (`generateLevel(level)`): `buildSectionList(level)` produces the section list — it always includes all four character sections (`crawl` / `fly` / `phase` / `wind`) so every character stays required, then pads with random extra sections (counts: L2=4, L3=5, L4=6, L5=8) and `shuffleArray()`s the result. Each section is built by `generateSection(..., level)`, advancing a `currentX` cursor. **Complexity scales with `level`** via a `diff = level - 2` factor: wider fly gaps, higher wind climbs, an extra phase wall at L4+, and more/faster enemies (`generateEnemies(level)`). `generateCoins()` and `generateEnemies()` spread their objects across the actual generated level width. When editing the procedural levels, work through `generateSection()`'s `switch(section.type)` and the per-section `diff` scaling rather than fixed coordinates.
 
-### Character Switching
-- Characters share position when switching (teleport mechanic)
-- Only one character active at a time
-- Each character has unique collision rules and abilities
+### Characters & Abilities
+1. **Mister Underpants** (red): glide/flight consuming regenerating `flightFuel` (held Up in air); Spacebar shoots a projectile.
+2. **Windman** (blue): Spacebar raises wind-receptive lift platforms; wind particles are visual feedback.
+3. **Teibi** (green): Spacebar toggles shrink — small form fits through narrow gaps.
+4. **Primm** (purple): Spacebar dashes (Katana Strike, instant enemy kill); **hold C** to phase through "phase walls" (solid for everyone else).
 
-## Game Physics
+### Difficulty
+Selected on the start screen (`startGame(difficulty, level)`): **Easy** (3 hearts, respawn), **Normal** (no extra lives), **Hardcore** (more enemies). Hearts UI is hidden outside Easy mode.
 
-### Movement System
-- Gravity: 0.8 units/frame
-- Friction: 0.8 multiplier
-- Jump power: 15 units
-- Character speed: 5 units/frame
-
-### Collision Detection
-- Platform collision with ground detection
-- Enemy collision with stomp vs. damage mechanics
-- Special collision rules for shrunk Teibi and phasing Primm
-
-## Level Design
-
-### Level 1 Structure
-- Single level with linear progression requiring each character's abilities
-- Sections: Starting area → Teibi puzzle → Flight section → Primm phase walls → Wind platform finale
-- Game complete after reaching the goal
-
-## Enemy System
-
-### Enemy Behavior
-- Patrol movement between defined boundaries
-- Player interaction: stomp to kill, touch sides/below for damage
-- Wind effects: can be blown away and stunned temporarily
-- Dash attacks: instantly eliminated by Primm's dash
-
-### Difficulty Scaling
-- **Easy**: Hearts system with respawn
-- **Normal**: Standard enemy count, no extra lives
-- **Hardcore**: 3x enemy density across all sections
-
-## UI Components
-
-### Character Selection
-- Top navigation bar with character portraits
-- Visual feedback for active character
-- Click or keyboard shortcuts (1-4 keys)
-
-### Tutorial System
-- Context-sensitive messages when switching characters
-- Automatic display with 3-second timeout
-- Character-specific ability explanations
-
-### Audio System
-- Background music rotation between two tracks
-- Volume controls and mute functionality
-- Automatic track switching every 60 seconds
-
-## Code Organization
-
-### Main Classes
-- `Game`: Primary game loop, physics, rendering
-- Character objects: Stored in `characters` array with ability properties
-- Platform/Object arrays: Level geometry and interactive elements
-
-### Key Methods
-- `initLevel()`: Level-specific platform and enemy setup
-- `switchCharacter()`: Character swapping with position inheritance
-- `useAbility()`: Character-specific ability activation
-- `checkCollisions()`: Physics and interaction detection
+### Audio
+Two background tracks (`Verse 1.mp3`, `Verse 1 (2).mp3`) driven by `playMusic()`, with rotation/mute controls. Browser autoplay policy means audio starts only after user interaction.
 
 ### Rendering Layer (visual polish)
 The rendering layer in `index.html` adds depth and "juice" on top of the flat-rect drawing. All of this is visual-only — no physics, hitboxes, or level data are affected.
@@ -114,28 +56,26 @@ The rendering layer in `index.html` adds depth and "juice" on top of the flat-re
 
 **Draw order in `render()`**: background (parallax) → `[camera translate]` → platforms → objects → enemies (each with its contact shadow) → projectiles → wind particles → blade fx → generic particles → active character (with contact shadow + glow) → fuel bar. There is no separate "contact shadows" pass: enemy shadows are drawn inline in the enemy loop and the active-character shadow inline in the character loop (gated on `onGround`). Generic particles are drawn after the wind/blade fx, not before.
 
-## Testing the Game
+## Running the Game
 
-### Basic Testing
-1. Test all four character abilities work correctly
-2. Verify level progression requires each character's unique ability
-3. Check enemy interactions (stomp vs. damage)
-4. Validate win/lose conditions
+This is a static site with no build system.
 
-### Browser Compatibility
-- Tested on Chrome, Firefox, Edge
-- Requires modern browser with Canvas API support
-- Audio may require user interaction to start (browser autoplay policies)
+- **Local dev**: open `index.html` directly in a modern browser (Chrome/Firefox/Edge). Edit the file and refresh. Debug via the browser console.
+- **Container**: `docker compose up --build` serves the static files via nginx on **port 8080** (the Dockerfile runs nginx as a non-root user on a non-privileged port, copying `index.html` and both `.mp3` files into the image).
 
-## Known Game Features
+## Deployment (CI/CD)
 
-### Special Mechanics
-- **Flight Fuel**: Mister Underpants has limited flight time that regenerates on ground
-- **Wind Particles**: Visual feedback for Windman's ability activation
-- **Phasing Effect**: Visual transparency when Primm phases through walls
-- **Collectible Coins**: Optional collectibles scattered throughout levels
+Push to `main` triggers `.github/workflows/deploy.yml`:
+1. Builds the Docker image and pushes it to `ghcr.io/<owner>/<repo>:<sha>`.
+2. Force-pushes a `deploy` branch whose `docker-compose.yml` has the image tag rewritten to the new SHA (via `sed`).
+3. Calls the Portainer redeploy webhook (`secrets.PORTAINER_REDEPLOY_HOOK`) to pull and restart.
 
-### Accessibility
-- Keyboard-only controls (no mouse required for gameplay)
-- Visual indicators for character abilities and states
-- Clear tutorial messages explaining character functions
+`docker-compose.yml` carries Traefik labels (TLS via `myresolver`, host from `${HOSTNAME}`, backend port 8080) and attaches to an external `traefik_network`. The `deploy` branch is machine-generated — do not edit it by hand; change `docker-compose.yml` on `main` instead.
+
+## Testing
+
+No automated tests. Verify manually in-browser:
+1. All four abilities work (shoot/fly, wind lift, shrink, dash/phase).
+2. Each level can be completed and genuinely requires every character — re-run the procedural levels (2–5) a few times each since they are randomized, and confirm difficulty actually ramps from L2 to L5.
+3. Enemy interactions: stomp/dash/projectile kills vs. side/below damage; wind stun.
+4. Win (reach goal) and lose (fall death / out of hearts) conditions, across all three difficulties.

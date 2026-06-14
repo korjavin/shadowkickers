@@ -41,14 +41,24 @@
                 
                 <div class="mb-6">
                     <h3 class="text-lg font-semibold mb-3">Choose Level:</h3>
-                    <div class="flex space-x-2 mb-4">
-                        <button id="level1Btn" onclick="selectLevel(1)" class="flex-1 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors border-2 border-white">
-                            Level 1
+                    <div class="flex space-x-2 mb-2">
+                        <button id="level1Btn" onclick="selectLevel(1)" class="flex-1 bg-blue-500 text-white px-2 py-2 rounded hover:bg-blue-600 transition-colors border-2 border-white font-semibold">
+                            1
                         </button>
-                        <button id="level2Btn" onclick="selectLevel(2)" class="flex-1 bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 transition-colors border-2 border-gray-400">
-                            Level 2
+                        <button id="level2Btn" onclick="selectLevel(2)" class="flex-1 bg-gray-500 text-white px-2 py-2 rounded hover:bg-gray-600 transition-colors border-2 border-gray-400 font-semibold">
+                            2
+                        </button>
+                        <button id="level3Btn" onclick="selectLevel(3)" class="flex-1 bg-gray-500 text-white px-2 py-2 rounded hover:bg-gray-600 transition-colors border-2 border-gray-400 font-semibold">
+                            3
+                        </button>
+                        <button id="level4Btn" onclick="selectLevel(4)" class="flex-1 bg-gray-500 text-white px-2 py-2 rounded hover:bg-gray-600 transition-colors border-2 border-gray-400 font-semibold">
+                            4
+                        </button>
+                        <button id="level5Btn" onclick="selectLevel(5)" class="flex-1 bg-gray-500 text-white px-2 py-2 rounded hover:bg-gray-600 transition-colors border-2 border-gray-400 font-semibold">
+                            5
                         </button>
                     </div>
+                    <p class="text-xs text-gray-500 mb-4">Level 1 is a guided tutorial. Levels 2–5 are procedurally generated with increasing complexity.</p>
                 </div>
                 
                 <div class="mb-6">
@@ -198,7 +208,7 @@
         let gameStarted = false;
         let currentLevel = 1;
         let selectedLevel = 1; // Track selected level
-        let maxLevel = 2;
+        let maxLevel = 5;
 
         // Start game with selected difficulty
         function startGame(selectedDifficulty, level = 1) {
@@ -236,23 +246,21 @@
         // Level selection functions
         function selectLevel(level) {
             selectedLevel = level;
-            
-            // Update level button styling
-            const level1Btn = document.getElementById('level1Btn');
-            const level2Btn = document.getElementById('level2Btn');
-            
-            level1Btn.classList.remove('border-white', 'bg-blue-600');
-            level1Btn.classList.add('border-gray-400', 'bg-gray-500');
-            
-            level2Btn.classList.remove('border-white', 'bg-blue-600');
-            level2Btn.classList.add('border-gray-400', 'bg-gray-500');
-            
-            if (level === 1) {
-                level1Btn.classList.remove('border-gray-400', 'bg-gray-500');
-                level1Btn.classList.add('border-white', 'bg-blue-600');
-            } else {
-                level2Btn.classList.remove('border-gray-400', 'bg-gray-500');
-                level2Btn.classList.add('border-white', 'bg-blue-600');
+
+            // Update level button styling for all available levels
+            for (let i = 1; i <= maxLevel; i++) {
+                const btn = document.getElementById(`level${i}Btn`);
+                if (!btn) continue;
+
+                if (i === level) {
+                    // Selected
+                    btn.classList.remove('border-gray-400', 'bg-gray-500', 'bg-blue-500');
+                    btn.classList.add('border-white', 'bg-blue-600');
+                } else {
+                    // Not selected
+                    btn.classList.remove('border-white', 'bg-blue-600', 'bg-blue-500');
+                    btn.classList.add('border-gray-400', 'bg-gray-500');
+                }
             }
         }
         
@@ -391,7 +399,8 @@
                 if (levelNumber === 1) {
                     this.initLevel1();
                 } else {
-                    this.generateLevel2();
+                    // Levels 2-5 are procedurally generated with increasing complexity
+                    this.generateLevel(levelNumber);
                 }
             }
 
@@ -729,33 +738,29 @@
                 this.calculateLevelBounds();
             }
 
-            generateLevel2() {
-                // Procedural Level Generator - ensures all characters are required
-                console.log('Generating Level 2...');
-                
+            generateLevel(level = 2) {
+                // Procedural Level Generator - ensures all characters are required.
+                // Complexity scales with `level`: more sections, harder obstacles, more enemies.
+                console.log(`Generating Level ${level}...`);
+
                 let currentX = 100; // Starting position
                 const groundHeight = 650;
                 const platformColors = ['#654321', '#8b4513', '#555'];
-                
+
                 // Starting platform
                 this.platforms.push({x: 0, y: groundHeight, width: 200, height: 150, color: '#8b4513'});
                 currentX = 200;
-                
-                // Generate 4 sections, one for each character's required ability
-                const sections = this.shuffleArray([
-                    { character: 'Teibi', type: 'crawl' },
-                    { character: 'Mister Underpants', type: 'fly' },
-                    { character: 'Primm', type: 'phase' },
-                    { character: 'Windman', type: 'wind' }
-                ]);
-                
+
+                // Build the section list (always includes all four abilities; longer at higher levels)
+                const sections = this.buildSectionList(level);
+
                 let finalPlatformY = groundHeight; // Track the height of the final platform
                 sections.forEach((section, index) => {
-                    const result = this.generateSection(currentX, section, index, groundHeight, platformColors);
+                    const result = this.generateSection(currentX, section, index, groundHeight, platformColors, level);
                     currentX = result.x;
                     finalPlatformY = result.y; // Get the Y position of the last platform created
                 });
-                
+
                 // Final goal platform and goal (positioned relative to last section)
                 const goalPlatformY = Math.min(finalPlatformY, groundHeight - 100); // Ensure it's accessible
                 this.platforms.push({x: currentX, y: goalPlatformY, width: 150, height: 20, color: '#654321'});
@@ -765,17 +770,40 @@
                     width: 50, height: 50,
                     color: '#ffd700'
                 });
-                
+
                 // Add random coins throughout
                 this.generateCoins(sections.length);
-                
-                // Add enemies based on difficulty
-                this.generateEnemies();
-                
+
+                // Add enemies based on difficulty and level
+                this.generateEnemies(level);
+
                 // Calculate level boundaries based on generated platforms
                 this.calculateLevelBounds();
-                
-                console.log('Level 2 generated successfully!');
+
+                console.log(`Level ${level} generated successfully with ${sections.length} sections!`);
+            }
+
+            buildSectionList(level) {
+                // One section per character ability. Every level requires all four;
+                // higher levels add extra sections (reusing abilities) for length & complexity.
+                const baseTypes = [
+                    { character: 'Teibi', type: 'crawl' },
+                    { character: 'Mister Underpants', type: 'fly' },
+                    { character: 'Primm', type: 'phase' },
+                    { character: 'Windman', type: 'wind' }
+                ];
+
+                // Section count by level: L2=4, L3=5, L4=6, L5=8
+                const sectionCounts = { 2: 4, 3: 5, 4: 6, 5: 8 };
+                const numSections = sectionCounts[level] || 4;
+
+                // Guarantee every ability appears at least once, then pad with random extras.
+                const sections = [...baseTypes];
+                while (sections.length < numSections) {
+                    sections.push(baseTypes[Math.floor(Math.random() * baseTypes.length)]);
+                }
+
+                return this.shuffleArray(sections);
             }
 
             shuffleArray(array) {
@@ -787,11 +815,12 @@
                 return shuffled;
             }
 
-            generateSection(startX, section, index, groundHeight, platformColors) {
+            generateSection(startX, section, index, groundHeight, platformColors, level = 2) {
                 const sectionWidth = 400 + Math.random() * 200; // 400-600 pixels wide
                 let currentX = startX;
                 let finalY = groundHeight; // Track the Y position of the last platform in this section
-                
+                const diff = Math.max(0, level - 2); // 0 at Level 2, grows each level
+
                 switch(section.type) {
                     case 'crawl': // Teibi section - multiple small gaps
                         currentX += 150;
@@ -839,8 +868,9 @@
                         break;
                         
                     case 'fly': // Mister Underpants section - large gap only reachable by flying
-                        // Create a gap that's too wide to jump but perfect for flying
-                        const gapWidth = 200; // 200 pixel gap
+                        // Create a gap that's too wide to jump but perfect for flying.
+                        // Widens with level (200 -> ~290) but stays within flight range.
+                        const gapWidth = 200 + diff * 30; // 200 pixel gap at Level 2
                         currentX += 50;
                         
                         // Platform before gap
@@ -858,46 +888,47 @@
                         currentX += 150;
                         break;
                         
-                    case 'phase': // Primm section - phase walls
+                    case 'phase': { // Primm section - phase walls
                         currentX += 100;
                         this.platforms.push({x: currentX, y: groundHeight, width: 100, height: 150, color: platformColors[2]});
                         currentX += 100;
-                        
-                        // Create a platform for the phase walls to sit on
+
+                        // More walls to phase through at higher levels (2 -> 3 at Level 4+)
+                        const wallCount = level >= 4 ? 3 : 2;
+
+                        // Create a platform wide enough for the phase walls to sit on
                         const phasePlatformY = groundHeight - 50;
-                        this.platforms.push({x: currentX - 25, y: phasePlatformY, width: 150, height: 200, color: platformColors[2]});
-                        
-                        // Multiple phase walls on the platform
-                        this.objects.push({
-                            type: 'phaseWall',
-                            x: currentX, y: phasePlatformY - 200,
-                            width: 25, height: 200,
-                            color: 'rgba(138, 43, 226, 0.6)'
-                        });
-                        currentX += 50;
-                        
-                        this.objects.push({
-                            type: 'phaseWall',
-                            x: currentX, y: phasePlatformY - 250,
-                            width: 25, height: 250,
-                            color: 'rgba(138, 43, 226, 0.6)'
-                        });
-                        currentX += 50;
-                        
+                        const phasePlatWidth = 50 * wallCount + 50;
+                        this.platforms.push({x: currentX - 25, y: phasePlatformY, width: phasePlatWidth, height: 200, color: platformColors[2]});
+
+                        // Phase walls (alternating heights), all resting on the platform
+                        for (let w = 0; w < wallCount; w++) {
+                            const extra = (w % 2) * 50;
+                            this.objects.push({
+                                type: 'phaseWall',
+                                x: currentX, y: phasePlatformY - 200 - extra,
+                                width: 25, height: 200 + extra,
+                                color: 'rgba(138, 43, 226, 0.6)'
+                            });
+                            currentX += 50;
+                        }
+
                         // Platform after phase walls
                         this.platforms.push({x: currentX, y: groundHeight, width: 150, height: 150, color: platformColors[2]});
                         finalY = groundHeight;
                         currentX += 150;
                         break;
+                    }
                         
                     case 'wind': // Windman section - wind platforms
                         currentX += 100;
                         this.platforms.push({x: currentX, y: groundHeight, width: 100, height: 150, color: platformColors[0]});
                         
-                        // Wind platform that needs to be activated
+                        // Wind platform that needs to be activated.
+                        // Higher levels lift you higher (longer climb), capped so it stays reachable.
                         const windPlatformX = currentX + 120;
                         const windPlatformY = 630;
-                        const windTargetY = 400 + Math.random() * 100;
+                        const windTargetY = Math.max(280, 400 + Math.random() * 100 - diff * 25);
                         
                         this.objects.push({
                             type: 'windPlatform',
@@ -924,9 +955,14 @@
             }
 
             generateCoins(numSections) {
-                // Generate random coins throughout the level
+                // Spread coins across the actual generated level width
+                let levelMaxX = 0;
+                this.platforms.forEach(p => { levelMaxX = Math.max(levelMaxX, p.x + p.width); });
+                const spread = Math.max(levelMaxX - 400, 1000);
+
+                // Generate random coins throughout the level (more on longer levels)
                 for (let i = 0; i < numSections + 2; i++) {
-                    const x = 200 + Math.random() * 3000; // Spread across level
+                    const x = 200 + Math.random() * spread; // Spread across level
                     const y = 300 + Math.random() * 200;
                     this.objects.push({
                         type: 'coin', 
@@ -938,20 +974,29 @@
                 }
             }
 
-            generateEnemies() {
-                const baseEnemyCount = 4;
+            generateEnemies(level = 2) {
+                // Enemy count grows with level; hardcore doubles it.
+                const baseEnemyCount = 4 + (level - 2) * 2; // L2=4, L3=6, L4=8, L5=12
                 const enemyCount = difficulty === 'hardcore' ? baseEnemyCount * 2 : baseEnemyCount;
-                
+
+                // Spread enemies across the actual generated level width
+                let levelMaxX = 0;
+                this.platforms.forEach(p => { levelMaxX = Math.max(levelMaxX, p.x + p.width); });
+                const spread = Math.max(levelMaxX - 500, 800);
+
+                // Enemies get a little faster at higher levels
+                const maxSpeed = 2 + (level - 2) * 0.5;
+
                 for (let i = 0; i < enemyCount; i++) {
-                    const x = 300 + Math.random() * 2800; // Spread across level
+                    const x = 300 + Math.random() * spread; // Spread across level
                     const patrolWidth = 100 + Math.random() * 100;
-                    
+
                     this.enemies.push({
                         x: x,
                         y: 620, // Ground level
                         width: 25, height: 25,
                         color: difficulty === 'hardcore' && Math.random() > 0.5 ? '#8b0000' : '#dc2626',
-                        vx: 1 + Math.random() * 2,
+                        vx: 1 + Math.random() * maxSpeed,
                         patrol: {min: Math.max(x - patrolWidth/2, 0), max: x + patrolWidth/2},
                         alive: true
                     });

@@ -55,7 +55,7 @@ Use Primary Ability: Spacebar or X
 Use Secondary Ability (Primm): C key
 
 How to Play
-Download the the_unlikely_squad.html file.
+Download the index.html file.
 
 Open the file in any modern web browser (like Chrome, Firefox, or Edge).
 
