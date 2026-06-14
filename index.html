@@ -1649,6 +1649,24 @@
                 ctx.fillRect(p.x, p.y + p.height - bevelH, p.width, bevelH);
             }
 
+            // Low-alpha black contact shadow ellipse at an entity's feet to ground it.
+            // Centered on (x + width/2) at the entity's bottom (y + height); width ~entity width.
+            // Visual-only; does not affect collision/geometry. Restores ctx state on exit.
+            drawContactShadow(ent) {
+                const ctx = this.ctx;
+                const cx = ent.x + ent.width / 2;
+                const cy = ent.y + ent.height;
+                const rx = ent.width * 0.5;
+                const ry = Math.max(3, ent.height * 0.12);
+                ctx.save();
+                ctx.globalAlpha = 0.22;
+                ctx.fillStyle = '#000';
+                ctx.beginPath();
+                ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+
             render() {
                 this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
@@ -1692,6 +1710,9 @@
                 // Draw enemies
                 this.enemies.forEach(enemy => {
                     if (enemy.alive) {
+                        // Contact shadow grounds the enemy (drawn under the body)
+                        this.drawContactShadow(enemy);
+
                         this.ctx.fillStyle = enemy.color;
                         this.ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
                         
@@ -1742,9 +1763,24 @@
                 // Draw characters
                 this.characters.forEach((char, index) => {
                     if (index === this.currentCharacter) {
+                        // Contact shadow grounds the active character (under the body)
+                        this.drawContactShadow(char);
+
+                        // Glow makes the controlled character obvious. Short shadowBlur in the
+                        // character's own color; reset immediately after so nothing else inherits it.
+                        this.ctx.save();
+                        this.ctx.shadowColor = char.color;
+                        this.ctx.shadowBlur = 16;
                         this.drawCharacter(char, index);
+                        this.ctx.restore();
                     }
                 });
+
+                // Defensively clear any lingering glow/blur/alpha so the flight-fuel bar below
+                // (still inside this save/restore) renders clean.
+                this.ctx.shadowBlur = 0;
+                this.ctx.shadowColor = 'transparent';
+                this.ctx.globalAlpha = 1;
 
                 // Draw flight fuel bar for Mister Underpants
                 if (this.currentCharacter === 0) {

@@ -87,11 +87,11 @@ Draw order inside `render()` becomes:
 **Files:**
 - Modify: `index.html` (`render()` — add shadow passes; wrap `drawCharacter` call with glow)
 
-- [ ] draw a low-alpha black ellipse (`ctx.ellipse`) at the active character's feet before `drawCharacter()`
-- [ ] draw the same contact shadow under each living enemy in the enemy loop
-- [ ] add a glow around the active character (short `shadowBlur` + character-colored `shadowColor`, reset immediately after) — fall back to a thin outline if blur is costly
-- [ ] reset `shadowBlur`/`shadowColor`/`globalAlpha` immediately after `drawCharacter()` — the flight-fuel bar (L1621–1629) draws right after, still inside the same `save/restore`, and will inherit a stray glow otherwise
-- [ ] **manual verify**: character and enemies feel grounded; the controlled character clearly stands out after switching with keys 1–4; the flight-fuel bar shows **no** stray glow/blur; console clean
+- [x] draw a low-alpha black ellipse (`ctx.ellipse`) at the active character's feet before `drawCharacter()`
+- [x] draw the same contact shadow under each living enemy in the enemy loop
+- [x] add a glow around the active character (short `shadowBlur` + character-colored `shadowColor`, reset immediately after) — fall back to a thin outline if blur is costly
+- [x] reset `shadowBlur`/`shadowColor`/`globalAlpha` immediately after `drawCharacter()` — the flight-fuel bar (L1621–1629) draws right after, still inside the same `save/restore`, and will inherit a stray glow otherwise
+- [x] manual verify (browser-only, not automatable in agent): character and enemies feel grounded; the controlled character clearly stands out after switching with keys 1–4; the flight-fuel bar shows **no** stray glow/blur; console clean
 
 ### Task 4: Rounded corners
 
