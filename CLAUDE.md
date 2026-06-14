@@ -102,6 +102,18 @@ This is a static HTML game with no build system. To develop:
 - `useAbility()`: Character-specific ability activation
 - `checkCollisions()`: Physics and interaction detection
 
+### Rendering Layer (visual polish)
+The rendering layer in `index.html` adds depth and "juice" on top of the flat-rect drawing. All of this is visual-only — no physics, hitboxes, or level data are affected.
+
+- **`drawBackground()`**: On-canvas sky gradient plus 3 tiled parallax layers (factors 0.2 / 0.4 / 0.6). Called at the **top of `render()` before the camera translate** (screen space), and reads the **unshaken** `camera.x` so the sky doesn't jitter with screen shake.
+- **`drawPlatform(p)`** + color helpers **`parseHexColor()`** / **`shadeColor()`**: Renders each platform as a gradient terrain body with a grass-top strip and a bottom bevel. The platform loop calls this instead of a flat `fillRect`.
+- **`roundedRect(x, y, w, h, r)`**: `roundRect`-with-`fillRect`-fallback helper used for platforms, enemies, coins, the goal, and the flight-fuel bar.
+- **`drawContactShadow(ent)`**: Ground-contact ellipse drawn under the active character and each living enemy. The active character also gets a `shadowBlur` glow, which is reset before the fuel-bar is drawn (so the HUD bar inherits no stray glow).
+- **Particle system**: `this.particles = []` with **`spawnParticles(x, y, opts)`** / **`updateParticles()`** (hard cap ~200 live particles). Drawn **inside the camera translate** (particles carry world coords). Used for landing dust, entity-colored impact bursts on kills, and gold coin-collect sparkles.
+- **Screen shake**: `this.shake` with **`addShake(mag)`** / **`updateShake()`**. Applied **only** as an offset on the world `ctx.translate` (never written into `this.camera`, which `updateCamera()` overwrites/clamps every frame). Magnitudes scale stomp < projectile < dash.
+
+**Draw order in `render()`**: background (parallax) → `[camera translate]` → platforms → objects → enemies → projectiles → contact shadows → particles → wind/blade fx → active character (with glow).
+
 ## Testing the Game
 
 ### Basic Testing

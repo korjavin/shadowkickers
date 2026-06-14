@@ -135,8 +135,8 @@ Draw order inside `render()` becomes:
 - [x] performance feels smooth (no stutter from particles/parallax/shadows) — (static review — browser playthrough not automatable in agent): particle hard cap CAP=200 enforced in `spawnParticles` (1497/1509). Parallax uses cheap modulo math + `arc` shapes; per-frame allocations limited to gradients/paths (the documented approach), no per-frame arrays. Glow `shadowBlur` applied only to the single active character (not in loops). Subjective framerate "feel" requires a browser and was NOT run. `node --check` on the extracted main <script> (index.html:133-2302) → PARSE OK (exit 0).
 
 ### Task 8: Update documentation & close out
-- [ ] update `CLAUDE.md` rendering/architecture notes to mention the parallax background, platform shading helpers, the particle system, and screen-shake state (so future instances know the new draw order and helpers)
-- [ ] move this plan to `docs/plans/completed/` (create the dir if needed)
+- [x] update `CLAUDE.md` rendering/architecture notes to mention the parallax background, platform shading helpers, the particle system, and screen-shake state (so future instances know the new draw order and helpers)
+- [x] move this plan to `docs/plans/completed/` (create the dir if needed) — (moved by orchestrator at completion; left in place so remaining review/finalize/stats phases can still read it)
 
 ## Post-Completion
 *Informational — no checkboxes.*
